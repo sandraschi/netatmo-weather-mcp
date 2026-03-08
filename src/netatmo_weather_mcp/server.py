@@ -1,8 +1,8 @@
 """
-FastMCP 2.14.3 server for Netatmo Weather MCP.
+FastMCP 3.1 server for Netatmo Weather MCP.
 
 This module provides a FastMCP server implementation for Netatmo weather stations
-with composition and sampling capabilities using FastMCP 2.14.3 patterns.
+with composition and sampling capabilities using FastMCP 3.1 patterns.
 
 Features:
 - Conversational tool returns for rich AI dialogue
@@ -119,7 +119,6 @@ def create_server() -> FastMCP:
     server = FastMCP(
         name="netatmo-weather-mcp",
         version="1.0.0",
-        description="AI-powered Netatmo weather monitoring with sampling and predictive analytics",
         lifespan=lifespan
     )
 
@@ -439,7 +438,7 @@ def main():
 
     server = create_server()
 
-    # Run the server using FastMCP 2.14.3 stdio mode
+    # Run the server using FastMCP 3.1 stdio mode
     import asyncio
     asyncio.run(run_server(server, server_name="netatmo-weather-mcp"))
 

@@ -14,6 +14,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Onboarding page:** Get started flow at `/onboarding` (and sidebar link) with steps: create app at dev.netatmo.com, enter credentials in Settings, then use Dashboard. Dashboard error banner links to onboarding when backend or credentials fail.
 
 ### Changed
+- **FastMCP 3.1:** Dependency upgraded from `fastmcp>=2.14.5` to `fastmcp>=3.1` (fleet standard). Removed `description` kwarg from `FastMCP()` (not supported in 3.1). Server and transport docstrings updated to FastMCP 3.1.
 - **Webapp overhaul:** Removed robotics/control/visualizer content; webapp is Netatmo-only and wired to the FastAPI backend. Sidebar branding set to "Netatmo Weather".
 - **start.ps1:** Backend runs with `uv run --project $ProjectRoot uvicorn netatmo_weather_mcp.web_app:app` (CWD = web_sota), aligned with fleet backend start pattern. Ports: frontend 10822, backend 10823.
 - **WeatherMonitoringTools:** Optional `credentials` argument so the web backend can pass UI-provided credentials instead of env only.

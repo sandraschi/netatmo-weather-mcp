@@ -1,12 +1,12 @@
 # 🌤️ Netatmo Weather MCP Server
 
-[![FastMCP 2.14.3](https://img.shields.io/badge/FastMCP-2.14.3-blue.svg)](https://github.com/modelcontextprotocol)
+[![FastMCP 3.1](https://img.shields.io/badge/FastMCP-3.1-blue.svg)](https://github.com/modelcontextprotocol)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 **AI-powered weather monitoring with sampling and predictive analytics for Netatmo weather stations.**
 
-The Netatmo Weather MCP Server provides comprehensive weather monitoring capabilities with advanced AI features including iterative sampling, predictive analytics, anomaly detection, and conversational tool returns. Built with FastMCP 2.14.3 for maximum compatibility with AI assistants.
+The Netatmo Weather MCP Server provides comprehensive weather monitoring capabilities with advanced AI features including iterative sampling, predictive analytics, anomaly detection, and conversational tool returns. Built with FastMCP 3.1 for compatibility with AI assistants and the MCP ecosystem.
 
 ## ✨ Features
 
@@ -177,7 +177,7 @@ netatmo-weather-mcp/
 └── tests/                    # Test suite
 ```
 
-### FastMCP 2.14.3 Features
+### FastMCP 3.1 Features
 
 - **Sampling Method Support**: Advanced AI sampling for creative weather analysis
 - **Enhanced Response Patterns**: Conversational tool returns with context
