@@ -1,0 +1,58 @@
+{
+  "weather_monitoring_guide": {
+    "name": "Weather Monitoring Guide",
+    "description": "Comprehensive guide for using Netatmo weather monitoring tools effectively",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Guide me through monitoring my Netatmo weather station with AI assistance"
+      },
+      {
+        "role": "assistant",
+        "content": "I'll help you set up comprehensive weather monitoring using the Netatmo Weather MCP. Here's how to get started:\n\n1. **First, discover your weather stations:**\n   Use `weather_station_management` with operation='list' to see all available stations\n\n2. **Check station status:**\n   Use operation='get_status' with your station_id to verify connectivity\n\n3. **Get current weather data:**\n   Use `weather_data_operations` with operation='current' for real-time readings\n\n4. **Set up AI sampling:**\n   Try `ai_weather_sampling` with sampling_mode='iterative' for intelligent data collection\n\n5. **Enable predictions:**\n   Use `weather_prediction_engine` for weather forecasting and automation suggestions\n\nWould you like me to walk you through any of these steps?"
+      }
+    ]
+  },
+  "ai_weather_analysis": {
+    "name": "AI Weather Analysis Workflow",
+    "description": "Complete AI-powered weather analysis and prediction workflow",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Perform a complete AI weather analysis on my Netatmo station"
+      },
+      {
+        "role": "assistant",
+        "content": "I'll perform a comprehensive AI weather analysis using the Netatmo Weather MCP's advanced capabilities:\n\n**Step 1: Station Assessment**\n- Check station connectivity and available sensors\n- Verify data quality and completeness\n\n**Step 2: Current Conditions Analysis**\n- Retrieve real-time weather data\n- Assess data completeness and sensor health\n\n**Step 3: AI Sampling Workflow**\n- Perform iterative sampling to identify patterns\n- Use predictive sampling for trend analysis\n- Run anomaly detection for unusual weather patterns\n\n**Step 4: Predictive Analytics**\n- Generate short-term weather forecasts\n- Analyze long-term trends and patterns\n- Provide automation suggestions based on predictions\n\n**Step 5: AI Insights Generation**\n- Generate optimization recommendations\n- Identify automation opportunities\n- Create alert conditions for extreme weather\n\nThis analysis will give you a complete picture of your weather station's performance and future weather patterns. Shall I begin?"
+      }
+    ]
+  },
+  "weather_automation_setup": {
+    "name": "Weather-Based Automation Setup",
+    "description": "Set up intelligent weather-based automation using AI predictions",
+    "messages": [
+      {
+        "role": "user",
+        "content": "Set up weather-based automation for my smart home"
+      },
+      {
+        "role": "assistant",
+        "content": "I'll help you set up intelligent weather-based automation using the Netatmo Weather MCP's predictive capabilities:\n\n**Understanding Your Setup:**\n- First, I'll analyze your weather station's capabilities\n- Check what sensors are available (temperature, humidity, rain, wind, etc.)\n- Assess data quality and prediction accuracy\n\n**AI-Powered Automation Suggestions:**\n\n1. **Temperature-Based HVAC Control:**\n   - Monitor predicted temperature changes\n   - Automatically adjust heating/cooling\n   - Prevent energy waste during mild weather\n\n2. **Rain-Based Irrigation:**\n   - Predict rainfall patterns\n   - Optimize watering schedules\n   - Prevent over-watering during rainy periods\n\n3. **Wind Protection:**\n   - Monitor wind speed predictions\n   - Close windows/awnings during high winds\n   - Protect outdoor equipment\n\n4. **Humidity Control:**\n   - Maintain optimal indoor humidity\n   - Run dehumidifiers/humidifiers as needed\n   - Prevent mold and comfort issues\n\n5. **Weather Alerts:**\n   - Extreme temperature warnings\n   - Storm preparation notifications\n   - Frost protection for plants\n\n**Implementation Steps:**\n1. Run weather prediction analysis\n2. Set up automation triggers based on AI predictions\n3. Test automation scenarios\n4. Monitor and refine based on actual performance\n\nWould you like me to start by analyzing your current weather station setup?"
+      }
+    ]
+  },
+  "sampling_workflow_guide": {
+    "name": "AI Sampling Workflow Guide",
+    "description": "Guide for using AI sampling features for weather pattern discovery",
+    "messages": [
+      {
+        "role": "user",
+        "content": "How do I use AI sampling to discover weather patterns?"
+      },
+      {
+        "role": "assistant",
+        "content": "The Netatmo Weather MCP provides advanced AI sampling capabilities for discovering weather patterns. Here's how to use them effectively:\n\n**Sampling Modes Available:**\n\n1. **Iterative Sampling** (`sampling_mode='iterative'`)\n   - Performs multiple sampling iterations with AI refinement\n   - Each iteration improves based on previous results\n   - Ideal for discovering complex weather patterns\n   - Use when you want the AI to learn and adapt\n\n2. **Predictive Sampling** (`sampling_mode='predictive'`)\n   - Focuses on forecasting future weather conditions\n   - Analyzes historical data for trend prediction\n   - Generates confidence scores for predictions\n   - Best for weather forecasting applications\n\n3. **Anomaly Detection** (`sampling_mode='anomaly'`)\n   - Identifies unusual weather patterns\n   - Detects statistical outliers and anomalies\n   - Helps find unexpected weather events\n   - Useful for weather monitoring and alerts\n\n**Best Practices:**\n\n- **Start with Iterative Sampling** for initial pattern discovery\n- **Use 3-5 iterations** for good balance of speed vs. quality\n- **Set refinement prompts** to guide the AI (e.g., 'focus on temperature patterns')\n- **Monitor quality scores** to ensure good sampling results\n- **Combine modes** for comprehensive analysis\n\n**Example Workflow:**\n1. Run iterative sampling to discover patterns\n2. Use predictive sampling for forecasting\n3. Apply anomaly detection for unusual events\n4. Generate insights and automation suggestions\n\nWould you like me to demonstrate any of these sampling modes?"
+      }
+    ]
+  }
+}

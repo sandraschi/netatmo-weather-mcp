@@ -1,0 +1,178 @@
+{
+  "mcpb_version": "1.0.0",
+  "name": "netatmo-weather-mcp",
+  "version": "1.0.0",
+  "description": "Netatmo Weather Station MCP Server - AI-powered weather monitoring with sampling and predictive analytics",
+  "author": "Sandra",
+  "license": "MIT",
+  "homepage": "https://github.com/sandra/netatmo-weather-mcp",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/sandra/netatmo-weather-mcp.git"
+  },
+  "keywords": [
+    "netatmo",
+    "weather",
+    "meteorology",
+    "climate",
+    "monitoring",
+    "mcp",
+    "fastmcp",
+    "ai",
+    "sampling",
+    "predictive-analytics",
+    "weather-station",
+    "iot",
+    "smart-home",
+    "data-analysis",
+    "machine-learning",
+    "automation"
+  ],
+  "mcp_server": {
+    "command": "python",
+    "args": ["-m", "netatmo_weather_mcp.server"],
+    "env": {
+      "PYTHONPATH": "src"
+    },
+    "transport": "stdio",
+    "capabilities": {
+      "tools": {
+        "listChanged": true,
+        "call": true
+      },
+      "resources": {
+        "list": true,
+        "read": true,
+        "subscribe": false
+      },
+      "prompts": {
+        "list": true,
+        "get": true
+      },
+      "logging": {
+        "level": "INFO"
+      },
+      "sampling": {
+        "supported": true,
+        "iterative": true,
+        "predictive": true,
+        "anomaly_detection": true
+      }
+    }
+  },
+  "dependencies": {
+    "python": ">=3.10",
+    "packages": [
+      "fastmcp>=2.14.3,<3.0.0",
+      "pyatmo>=6.0.0",
+      "httpx>=0.27.0,<1.0.0",
+      "pydantic>=2.0.0,<3.0.0",
+      "python-dotenv>=1.0.0",
+      "asyncio-throttle>=1.0.0",
+      "aiocache>=0.12.0",
+      "tenacity>=8.2.0",
+      "prometheus-client>=0.20.0",
+      "structlog>=23.1.0",
+      "numpy>=1.24.0",
+      "pandas>=2.0.0",
+      "scikit-learn>=1.3.0",
+      "statsmodels>=0.14.0",
+      "python-dateutil>=2.8.2",
+      "anyio>=4.5.0"
+    ]
+  },
+  "configuration": {
+    "required_env_vars": [
+      "NETATMO_CLIENT_ID",
+      "NETATMO_CLIENT_SECRET",
+      "NETATMO_USERNAME",
+      "NETATMO_PASSWORD"
+    ],
+    "optional_env_vars": [
+      "NETATMO_SCOPE",
+      "METRICS_PORT",
+      "ENABLE_METRICS",
+      "LOG_LEVEL"
+    ],
+    "default_values": {
+      "NETATMO_SCOPE": "read_station",
+      "METRICS_PORT": "9091",
+      "ENABLE_METRICS": "true",
+      "LOG_LEVEL": "INFO"
+    }
+  },
+  "ai_features": {
+    "sampling_support": {
+      "iterative_sampling": true,
+      "predictive_modeling": true,
+      "anomaly_detection": true,
+      "pattern_recognition": true
+    },
+    "conversational_interface": {
+      "context_aware_responses": true,
+      "workflow_suggestions": true,
+      "error_recovery_hints": true
+    },
+    "predictive_analytics": {
+      "short_term_forecasting": true,
+      "trend_analysis": true,
+      "automation_suggestions": true,
+      "alert_generation": true
+    }
+  },
+  "tools": [
+    {
+      "name": "weather_station_management",
+      "description": "Comprehensive weather station discovery, status monitoring, and configuration management",
+      "capabilities": ["list", "get_info", "get_status"],
+      "ai_enhanced": true
+    },
+    {
+      "name": "weather_data_operations",
+      "description": "Advanced weather data retrieval, historical analysis, and AI sampling operations",
+      "capabilities": ["current", "historical", "sample", "analyze"],
+      "ai_enhanced": true
+    },
+    {
+      "name": "ai_weather_sampling",
+      "description": "AI-powered iterative sampling, pattern recognition, and workflow refinement",
+      "capabilities": ["iterative", "predictive", "anomaly"],
+      "ai_enhanced": true
+    },
+    {
+      "name": "weather_prediction_engine",
+      "description": "Comprehensive weather prediction with trend analysis and automation suggestions",
+      "capabilities": ["short_term", "trend_analysis", "anomaly_detection"],
+      "ai_enhanced": true
+    }
+  ],
+  "fastmcp_compliance": {
+    "version": "2.14.3+",
+    "features": [
+      "sampling_method_support",
+      "enhanced_response_patterns",
+      "server_lifespan_management",
+      "advanced_tool_management",
+      "conversational_tool_returns",
+      "cooperative_patterns"
+    ]
+  },
+  "monitoring": {
+    "prometheus_metrics": true,
+    "structured_logging": true,
+    "health_endpoints": true,
+    "performance_monitoring": true
+  },
+  "testing": {
+    "unit_tests": true,
+    "integration_tests": true,
+    "ai_workflow_tests": true,
+    "performance_tests": false
+  },
+  "deployment": {
+    "docker_support": true,
+    "kubernetes_ready": false,
+    "cloud_native": false,
+    "edge_deployment": false
+  }
+}

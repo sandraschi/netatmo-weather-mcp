@@ -1,0 +1,108 @@
+server:
+  http_listen_port: 9080
+  grpc_listen_port: 0
+
+positions:
+  filename: /tmp/positions.yaml
+
+clients:
+  - url: http://localhost:3100/loki/api/v1/push
+
+scrape_configs:
+  # Netatmo Weather MCP application logs
+  - job_name: netatmo-weather-mcp
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: netatmo-weather-mcp
+          __path__: logs/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            timestamp: timestamp
+            level: level
+            logger: logger
+            message: message
+      - labels:
+          level: level
+          logger: logger
+      - timestamp:
+          source: timestamp
+          format: RFC3339
+      - output:
+          source: message
+
+  # Netatmo Weather MCP stderr/stdout
+  - job_name: netatmo-weather-mcp-stdio
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: netatmo-weather-mcp
+          stream: stdio
+          __path__: /var/log/netatmo-weather-mcp/*.log
+    pipeline_stages:
+      - regex:
+          expression: '^(?P<timestamp>\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2},\d{3}) (?P<level>\w+) (?P<logger>[^\s]+) (?P<message>.+)$'
+      - labels:
+          level: level
+          logger: logger
+      - timestamp:
+          source: timestamp
+          format: '2006-01-02 15:04:05,000'
+      - output:
+          source: message
+
+  # System logs for context
+  - job_name: system
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: system
+          __path__: /var/log/syslog
+    pipeline_stages:
+      - match:
+          selector: '{job="system"}'
+          stages:
+            - regex:
+                expression: '^(?P<timestamp>\w+ \d+ \d{2}:\d{2}:\d{2}) (?P<hostname>\w+) (?P<process>[^\[]+)\[(?P<pid>\d+)\]: (?P<message>.+)$'
+            - labels:
+                hostname: hostname
+                process: process
+                pid: pid
+            - timestamp:
+                source: timestamp
+                format: 'Jan 2 15:04:05'
+            - output:
+                source: message
+
+  # Docker container logs (if running in containers)
+  - job_name: docker
+    static_configs:
+      - targets:
+          - localhost
+        labels:
+          job: docker
+          __path__: /var/lib/docker/containers/*/*.log
+    pipeline_stages:
+      - json:
+          expressions:
+            log: log
+            stream: stream
+            time: time
+      - labels:
+          stream: stream
+      - timestamp:
+          source: time
+          format: RFC3339
+      - output:
+          source: log
+      - match:
+          selector: '{job="docker"}'
+          stages:
+            - regex:
+                expression: '^{"log":"(?P<message>[^"]*)".*}$'
+            - output:
+                source: message

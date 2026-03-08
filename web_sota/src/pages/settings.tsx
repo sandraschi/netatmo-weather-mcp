@@ -1,0 +1,164 @@
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { useState, useEffect } from "react";
+import { getCredentialsStatus, setCredentials as saveCredentials } from "@/common/api";
+
+const DEFAULT_API = "http://127.0.0.1:10823/api";
+
+export function Settings() {
+  const [apiUrl, setApiUrl] = useState(DEFAULT_API);
+  const [testResult, setTestResult] = useState<string | null>(null);
+
+  const [clientId, setClientId] = useState("");
+  const [clientSecret, setClientSecret] = useState("");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [credentialsSaved, setCredentialsSaved] = useState<boolean | null>(null);
+  const [credentialsError, setCredentialsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    getCredentialsStatus()
+      .then((r) => setCredentialsSaved(r.configured))
+      .catch(() => setCredentialsSaved(false));
+  }, []);
+
+  async function handleTest() {
+    setTestResult(null);
+    try {
+      const base = apiUrl.replace(/\/+$/, "");
+      const res = await fetch(`${base}/health`);
+      const data = await res.json();
+      if (data?.success && data?.status === "online") {
+        setTestResult("Backend is reachable.");
+      } else {
+        setTestResult("Unexpected response.");
+      }
+    } catch (e) {
+      setTestResult(e instanceof Error ? e.message : "Connection failed.");
+    }
+  }
+
+  async function handleSaveCredentials() {
+    setCredentialsError(null);
+    if (!clientId.trim() || !clientSecret.trim() || !username.trim() || !password.trim()) {
+      setCredentialsError("Fill all four fields.");
+      return;
+    }
+    try {
+      await saveCredentials({
+        client_id: clientId.trim(),
+        client_secret: clientSecret.trim(),
+        username: username.trim(),
+        password: password.trim(),
+      });
+      setCredentialsSaved(true);
+    } catch (e) {
+      setCredentialsError(e instanceof Error ? e.message : "Save failed.");
+    }
+  }
+
+  return (
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-bold tracking-tight text-white">Settings</h2>
+        <p className="text-slate-400">Backend and Netatmo credentials</p>
+      </div>
+
+      <Card className="border-slate-800 bg-slate-950/50">
+        <CardHeader>
+          <CardTitle className="text-white">Backend API</CardTitle>
+          <CardDescription className="text-slate-400">
+            URL of the Netatmo Weather MCP web backend (default: 127.0.0.1:10823). Restart the app after changing.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2">
+            <Label className="text-slate-300">API base URL</Label>
+            <Input
+              className="bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-400"
+              value={apiUrl}
+              onChange={(e) => setApiUrl(e.target.value)}
+              placeholder={DEFAULT_API}
+            />
+          </div>
+          <Button variant="outline" className="border-slate-800 text-slate-300 hover:bg-slate-800" onClick={handleTest}>
+            Test connection
+          </Button>
+          {testResult != null && (
+            <p className="text-sm text-slate-400">{testResult}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-slate-800 bg-slate-950/50">
+        <CardHeader>
+          <CardTitle className="text-white">Netatmo credentials</CardTitle>
+          <CardDescription className="text-slate-400">
+            Enter your Netatmo API credentials. Stored in memory for this session only (lost on backend restart).
+            Alternatively set env: NETATMO_CLIENT_ID, NETATMO_CLIENT_SECRET, NETATMO_USERNAME, NETATMO_PASSWORD.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid gap-2">
+            <Label className="text-slate-300">Client ID</Label>
+            <Input
+              className="bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-400"
+              value={clientId}
+              onChange={(e) => setClientId(e.target.value)}
+              placeholder="Netatmo app client ID"
+              autoComplete="off"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label className="text-slate-300">Client secret</Label>
+            <Input
+              className="bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-400"
+              type="password"
+              value={clientSecret}
+              onChange={(e) => setClientSecret(e.target.value)}
+              placeholder="Netatmo app client secret"
+              autoComplete="off"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label className="text-slate-300">Username (email)</Label>
+            <Input
+              className="bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-400"
+              type="email"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              placeholder="Netatmo account email"
+              autoComplete="off"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label className="text-slate-300">Password</Label>
+            <Input
+              className="bg-slate-900 border-slate-800 text-slate-100 placeholder:text-slate-400"
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              placeholder="Netatmo account password"
+              autoComplete="off"
+            />
+          </div>
+          <Button
+            variant="outline"
+            className="border-slate-800 text-slate-300 hover:bg-slate-800"
+            onClick={handleSaveCredentials}
+          >
+            Save credentials
+          </Button>
+          {credentialsSaved === true && (
+            <p className="text-sm text-emerald-400">Credentials saved for this session.</p>
+          )}
+          {credentialsError != null && (
+            <p className="text-sm text-amber-400">{credentialsError}</p>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
