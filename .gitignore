@@ -130,3 +130,4 @@ netatmo_token.cache
 # OS
 .DS_Store
 Thumbs.db
+_dashboard/

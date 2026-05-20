@@ -8,6 +8,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- **Industrial Startup Script**: Root `start.ps1` with `-Headless`, `-BackendOnly`, and `-NoBrowser` support.
+- **Improved Port Handling**: Automatic TCP squatter termination and health-check polling.
 - **Webapp backend (FastAPI):** `web_app.py` exposes REST API for the React frontend: `GET /api/health`, `GET /api/stations`, `GET /api/stations/{id}`, `GET /api/stations/{id}/status`, `GET /api/weather/current?station_id=...`, `GET /api/config/credentials`, `POST /api/config/credentials`.
 - **Credentials in Settings:** Netatmo client ID, client secret, username, and password can be entered and saved in the webapp Settings page; stored in backend memory for the session (alternatively use env vars).
 - **Webapp UI:** Dashboard (health, station count, current weather from API), Stations page (list and current readings), Trends placeholder, Chat placeholder, Settings (backend URL and Netatmo credentials).

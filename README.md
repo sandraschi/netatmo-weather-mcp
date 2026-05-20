@@ -1,10 +1,11 @@
 # Netatmo Weather MCP Server
 
-[![FastMCP Version](https://img.shields.io/badge/FastMCP-3.1-blue?style=flat-square&logo=python&logoColor=white)](https://github.com/sandraschi/fastmcp) [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff) [![Linted with Biome](https://img.shields.io/badge/Linted_with-Biome-60a5fa?style=flat-square&logo=biome&logoColor=white)](https://biomejs.dev/) [![Built with Just](https://img.shields.io/badge/Built_with-Just-000000?style=flat-square&logo=gnu-bash&logoColor=white)](https://github.com/casey/just)
-
-[![FastMCP 3.1](https://img.shields.io/badge/FastMCP-3.1-blue.svg)](https://github.com/modelcontextprotocol)
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+<p align="center">
+  <a href="https://github.com/casey/just"><img src="https://img.shields.io/badge/just-ready_to_go-7c5cfc?style=flat-square&logo=just&logoColor=white" alt="Just"></a>
+  <a href="https://github.com/astral-sh/ruff"><img src="https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json" alt="Ruff"></a>
+  <a href="https://python.org"><img src="https://img.shields.io/badge/Python-3.13+-3776AB?style=flat-square&logo=python&logoColor=white" alt="Python"></a>
+  <a href="https://github.com/PrefectHQ/fastmcp"><img src="https://img.shields.io/badge/FastMCP-3.2-7c5cfc?style=flat-square" alt="FastMCP"></a>
+</p>
 
 **AI-powered weather monitoring with sampling and predictive analytics for Netatmo weather stations.**
 
@@ -38,8 +39,18 @@ The Netatmo Weather MCP Server provides comprehensive weather monitoring capabil
 
 ## Quick Start
 
-### Prerequisites
+```powershell
+git clone https://github.com/sandraschi/netatmo-weather-mcp
+cd netatmo-weather-mcp
+just
+```
 
+This opens an interactive dashboard showing all available commands. Run `just bootstrap` to install dependencies, then `just serve` or `just dev` to start.
+
+### Manual Setup
+
+If you don't have `just` installed:
+### Prerequisites
 - Python 3.10 or higher
 - Netatmo Developer Account ([dev.netatmo.com](https://dev.netatmo.com))
 - Netatmo Weather Station
@@ -88,8 +99,21 @@ Add to your `claude_desktop_config.json`:
 ### Webapp (React + FastAPI)
 
 A browser UI runs alongside the MCP server for dashboards and station data.
+By default, the web dashboard runs on port **10822**.
+*(Assigned ports: **10822** (Frontend), **10823** (Backend))*
 
-- **Start:** From repo root, run `.\web_sota\start.ps1` (PowerShell). Backend runs on **10823**, frontend on **10822**.
+To start the webapp dashboard and backend:
+```powershell
+.\start.ps1
+```
+
+### Advanced Startup Flags
+- `-Headless`: Runs everything in the background (hidden windows).
+- `-BackendOnly`: Starts only the Python API server (no Vite frontend).
+- `-NoBrowser`: Prevents the automatic browser opening.
+
+Access the dashboard at `http://localhost:10822`.
+
 - **Onboarding:** New users can open **Get started** in the sidebar (or go to `/onboarding`) for a short guide: create an app at [dev.netatmo.com](https://dev.netatmo.com), enter Client ID/secret and account credentials in Settings, then use Dashboard and Stations.
 - **Pages:** Get started (onboarding), Dashboard (health, stations, current weather), Stations (list and readings), Trends (placeholder), Chat (placeholder), Settings (backend URL and Netatmo credentials).
 - **Stations:** Loaded from your Netatmo account via the cloud API after credentials are set; there is no local network discovery.
