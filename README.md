@@ -7,6 +7,9 @@
   <a href="https://github.com/PrefectHQ/fastmcp"><img src="https://img.shields.io/badge/FastMCP-3.2-7c5cfc?style=flat-square" alt="FastMCP"></a>
 </p>
 
+
+> 📖 **[Installation Guide](INSTALL.md)** — quick start, manual setup, and troubleshooting
+
 **AI-powered weather monitoring with sampling and predictive analytics for Netatmo weather stations.**
 
 The Netatmo Weather MCP Server provides comprehensive weather monitoring capabilities with advanced AI features including iterative sampling, predictive analytics, anomaly detection, and conversational tool returns. Built with FastMCP 3.1 for compatibility with AI assistants and the MCP ecosystem.
