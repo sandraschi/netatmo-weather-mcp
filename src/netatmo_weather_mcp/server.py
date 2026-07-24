@@ -1,8 +1,8 @@
 """
-FastMCP 3.1 server for Netatmo Weather MCP.
+FastMCP 3.4 server for Netatmo Weather MCP.
 
 This module provides a FastMCP server implementation for Netatmo weather stations
-with composition and sampling capabilities using FastMCP 3.1 patterns.
+with composition and sampling capabilities using FastMCP 3.4 patterns.
 
 Features:
 - Conversational tool returns for rich AI dialogue
@@ -20,6 +20,7 @@ from typing import Any
 
 import structlog
 from fastmcp import FastMCP
+from fastmcp.server.server import ToolResult
 from prometheus_client import Counter, Gauge, Histogram, start_http_server
 from pydantic import BaseModel, Field
 
@@ -112,6 +113,46 @@ def create_server() -> FastMCP:
     ai_sampling_tools = AISamplingTools()
     predictive_tools = PredictiveAnalyticsTools()
 
+    # Register prompts
+    @server.prompt()
+    def weather_help(topic: str = "") -> str:
+        """Get help for Netatmo weather tools."""
+        if topic == "stations":
+            return (
+                "Use `weather_station_management` with operation='list' to discover stations, "
+                "operation='get_info' for details, operation='get_status' for reachability."
+            )
+        if topic == "data":
+            return (
+                "Use `weather_data_operations` with operation='current' for live readings, "
+                "operation='historical' for past data, operation='analyze' for statistics."
+            )
+        return (
+            "Netatmo Weather MCP provides 4 portmanteau tools: "
+            "weather_station_management, weather_data_operations, "
+            "ai_weather_sampling, weather_prediction_engine."
+        )
+
+    @server.prompt()
+    def weather_forecast_guide() -> str:
+        """Guide to generating weather predictions."""
+        return (
+            "To generate predictions: first collect historical data with "
+            "`weather_data_operations(operation='historical', timeframe='24h')`, "
+            "then run `weather_prediction_engine` with the appropriate prediction_type. "
+            "For short-term use 'short_term', for trends use 'trend_analysis'."
+        )
+
+    # Register resource
+    @server.resource("netatmo://info")
+    def netatmo_info() -> str:
+        """Server info and config status."""
+        return (
+            "Netatmo Weather MCP v1.0.0. "
+            "Provides weather monitoring, AI sampling, and predictive analytics "
+            "for Netatmo weather stations."
+        )
+
     # Register portmanteau weather monitoring tools
     @server.tool(annotations=_READ_ONLY)
     async def weather_station_management(
@@ -123,13 +164,9 @@ def create_server() -> FastMCP:
         PORTMANTEAU PATTERN RATIONALE:
         Consolidates station discovery, status monitoring, and configuration into single interface.
         Prevents tool explosion while maintaining full weather station management capabilities.
-        Follows FastMCP 2.14.3 best practices for conversational AI workflows.
+        Follows FastMCP 3.4 best practices for conversational AI workflows.
 
         Comprehensive weather station management with conversational returns.
-
-        Args:
-            operation: Operation to perform ('list', 'get_info', 'get_status')
-            station_id: Station ID for specific operations
 
         Returns:
             Dict containing operation results with conversational context and next action suggestions
@@ -195,12 +232,6 @@ def create_server() -> FastMCP:
         Optimized for AI sampling and predictive analytics patterns.
 
         Advanced weather data operations with AI sampling support.
-
-        Args:
-            operation: Operation type ('current', 'historical', 'sample', 'analyze')
-            station_id: Weather station identifier
-            timeframe: Timeframe for historical operations
-            data_types: Specific data types to focus on
 
         Returns:
             Dict with weather data and AI workflow suggestions
@@ -272,15 +303,9 @@ def create_server() -> FastMCP:
         PORTMANTEAU PATTERN RATIONALE:
         Consolidates AI-driven weather sampling, iterative refinement, and predictive workflows.
         Enables true AI-weather station interaction with sampling-based learning.
-        Implements FastMCP 2.14.3 sampling method support for creative AI applications.
+        Implements FastMCP 3.4 sampling method support for creative AI applications.
 
         AI-powered weather sampling with iterative refinement and predictive analytics.
-
-        Args:
-            sampling_mode: Type of sampling ('iterative', 'predictive', 'anomaly')
-            station_id: Weather station identifier
-            iterations: Number of sampling iterations for refinement
-            refinement_prompt: AI instructions for sampling refinement
 
         Returns:
             Dict with sampling results and AI workflow continuation suggestions
@@ -336,12 +361,6 @@ def create_server() -> FastMCP:
 
         Advanced weather prediction engine with trend analysis and anomaly detection.
 
-        Args:
-            prediction_type: Type of prediction to generate
-            station_id: Weather station identifier
-            forecast_hours: Hours to forecast ahead
-            confidence_threshold: Minimum confidence for predictions
-
         Returns:
             Dict with predictions, confidence scores, and automation suggestions
         """
@@ -387,6 +406,27 @@ def create_server() -> FastMCP:
                 },
             }
 
+    @server.tool(app=True)
+    async def show_help_overview() -> ToolResult:
+        """Show an overview of available weather tools and features.
+
+        ## Return Format
+        Rich Prefab card with tool descriptions and quick actions.
+        """
+        try:
+            from prefab_ui import PrefabApp
+            from prefab_ui.components import Heading, Row
+
+            with PrefabApp(title="Netatmo Weather MCP") as app:
+                Heading("Available Tools")
+                Row(label="weather_station_management", value="Discover and monitor stations")
+                Row(label="weather_data_operations", value="Current and historical data")
+                Row(label="ai_weather_sampling", value="AI-driven sampling")
+                Row(label="weather_prediction_engine", value="Forecasts and alerts")
+            return ToolResult(content="Use weather tools to monitor Netatmo stations.", structured_content=app)
+        except ImportError:
+            return ToolResult(content="Prefab UI not available. Use weather_station_management to list stations.")
+
     return server
 
 
@@ -423,7 +463,7 @@ def main():
 
     server = create_server()
 
-    # Run the server using FastMCP 3.1 stdio mode
+    # Run the server using FastMCP 3.4 stdio mode
     asyncio.run(run_server(server, server_name="netatmo-weather-mcp"))
 
 

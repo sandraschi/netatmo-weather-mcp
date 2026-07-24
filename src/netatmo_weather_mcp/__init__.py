@@ -1,7 +1,7 @@
 """
 Netatmo Weather MCP Server - AI-powered weather monitoring with sampling and predictive analytics.
 
-This package provides a FastMCP 2.14.3 compliant server for Netatmo weather stations,
+This package provides a FastMCP 3.4 compliant server for Netatmo weather stations,
 featuring conversational tool returns, AI sampling workflows, and predictive analytics.
 """
 

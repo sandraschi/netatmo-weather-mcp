@@ -72,30 +72,35 @@ export function Dashboard() {
 
   useEffect(() => {
     let cancelled = false;
+    let delay = 1000;
     (async () => {
-      try {
-        const h = await getHealth();
+      for (let attempt = 0; attempt < 5; attempt++) {
         if (cancelled) return;
-        setHealthOk(h.success && h.status === "online");
-        if (!h.success) return;
-        const s = await getStations();
-        if (cancelled) return;
-        setStations(s);
-        const first = s.stations?.[0];
-        if (first?.id) {
-          const w = await getCurrentWeather(first.id);
-          if (!cancelled) setWeather(w);
-        }
-      } catch (e) {
-        if (!cancelled) {
-          setHealthOk(false);
-          setError(e instanceof Error ? e.message : "Backend unreachable");
+        try {
+          const h = await getHealth();
+          if (cancelled) return;
+          setHealthOk(h.success && h.status === "online");
+          if (!h.success) { await new Promise(r => setTimeout(r, delay)); delay *= 2; continue; }
+          const s = await getStations();
+          if (cancelled) return;
+          setStations(s);
+          const first = s.stations?.[0];
+          if (first?.id) {
+            const w = await getCurrentWeather(first.id);
+            if (!cancelled) setWeather(w);
+          }
+          return;
+        } catch (e) {
+          if (!cancelled) {
+            setHealthOk(false);
+            if (attempt === 4) setError(e instanceof Error ? e.message : "Backend unreachable");
+          }
+          await new Promise(r => setTimeout(r, delay));
+          delay *= 2;
         }
       }
     })();
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, []);
 
   const firstStation = stations?.stations?.[0];

@@ -1,5 +1,5 @@
 """
-FastMCP 3.1 transport configuration.
+FastMCP 3.4 transport configuration.
 
 Standard module for all MCP servers in d:/Dev/repos.
 Provides unified transport configuration for STDIO, HTTP Streamable, and legacy SSE modes.
