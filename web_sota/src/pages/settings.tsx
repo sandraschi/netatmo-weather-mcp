@@ -1,3 +1,4 @@
+import { API_BASE } from "../lib/api";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,9 +10,9 @@ function LLMSettings() {
   const [providers, setProviders] = useState<Record<string, {name:string}[]>>({});
   const [selectedProvider, setSelectedProvider] = useState("ollama");
   const [selectedModel, setSelectedModel] = useState("");
-  const [status, setStatus] = useState<"loading"|"ready"|"error">("loading");
+  const [_status, setStatus] = useState<"loading"|"ready"|"error">("loading");
   useEffect(() => {
-    fetch("/api/llm/providers").then(r => r.json()).then(d => {
+    fetch(API_BASE + "/api/llm/providers").then(r => r.json()).then(d => {
       setProviders(d);
       const savedP = localStorage.getItem("llm_provider") || "ollama";
       const savedM = localStorage.getItem("llm_model") || "";
@@ -109,7 +110,7 @@ export function Settings() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-testid="settings-page">
       <div>
         <h2 className="text-2xl font-bold tracking-tight text-white">Settings</h2>
         <p className="text-slate-400">Backend and Netatmo credentials</p>
@@ -141,7 +142,7 @@ export function Settings() {
         </CardContent>
       </Card>
 
-      <Card className="border-slate-800 bg-slate-950/50">
+      <Card className="border-slate-800 bg-slate-950/50" data-testid="settings-credentials">
         <CardHeader>
           <CardTitle className="text-white">Netatmo credentials</CardTitle>
           <CardDescription className="text-slate-400">
@@ -180,6 +181,7 @@ export function Settings() {
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Netatmo account email"
               autoComplete="off"
+              data-testid="settings-email"
             />
           </div>
           <div className="grid gap-2">
@@ -191,12 +193,14 @@ export function Settings() {
               onChange={(e) => setPassword(e.target.value)}
               placeholder="Netatmo account password"
               autoComplete="off"
+              data-testid="settings-password"
             />
           </div>
           <Button
             variant="outline"
             className="border-slate-800 text-slate-300 hover:bg-slate-800"
             onClick={handleSaveCredentials}
+            data-testid="settings-save"
           >
             Save credentials
           </Button>

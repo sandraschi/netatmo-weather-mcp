@@ -5,22 +5,18 @@ Provides iterative sampling, pattern analysis, and predictive sampling
 capabilities for weather data with FastMCP 2.14.3 sampling method support.
 """
 
-import asyncio
-import random
-from typing import Any, Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
-from dataclasses import dataclass
 import statistics
+from dataclasses import dataclass
+from datetime import datetime, timedelta
+from typing import Any
 
 import numpy as np
 import pandas as pd
-from sklearn.linear_model import LinearRegression
-from sklearn.preprocessing import StandardScaler
-
 import structlog
+from sklearn.linear_model import LinearRegression
 
-from ..core.netatmo_client import NetatmoClient, WeatherData
 from ..core.exceptions import SamplingError
+from ..core.netatmo_client import NetatmoClient, WeatherData
 
 logger = structlog.get_logger(__name__)
 
@@ -28,9 +24,10 @@ logger = structlog.get_logger(__name__)
 @dataclass
 class SamplingIteration:
     """Result of a single sampling iteration."""
+
     iteration: int
     timestamp: datetime
-    data: Dict[str, Any]
+    data: dict[str, Any]
     quality_score: float
     refinement_applied: str
 
@@ -38,27 +35,24 @@ class SamplingIteration:
 @dataclass
 class SamplingResult:
     """Complete sampling workflow result."""
+
     mode: str
     station_id: str
-    iterations: List[SamplingIteration]
+    iterations: list[SamplingIteration]
     final_quality_score: float
-    pattern_detected: Optional[str] = None
-    predictive_accuracy: Optional[float] = None
+    pattern_detected: str | None = None
+    predictive_accuracy: float | None = None
 
 
 class WeatherSamplingManager:
     """Manages AI-powered weather data sampling for iterative workflows."""
 
     def __init__(self):
-        self._sampling_history: Dict[str, List[SamplingResult]] = {}
-        self._pattern_cache: Dict[str, Dict[str, Any]] = {}
+        self._sampling_history: dict[str, list[SamplingResult]] = {}
+        self._pattern_cache: dict[str, dict[str, Any]] = {}
 
     async def perform_iterative_sampling(
-        self,
-        client: NetatmoClient,
-        station_id: str,
-        iterations: int,
-        refinement_prompt: str
+        self, client: NetatmoClient, station_id: str, iterations: int, refinement_prompt: str
     ) -> SamplingResult:
         """
         Perform iterative sampling with AI-guided refinement.
@@ -95,10 +89,7 @@ class WeatherSamplingManager:
             final_quality = statistics.mean(quality_scores) if quality_scores else 0.0
 
             result = SamplingResult(
-                mode="iterative",
-                station_id=station_id,
-                iterations=iterations_data,
-                final_quality_score=final_quality
+                mode="iterative", station_id=station_id, iterations=iterations_data, final_quality_score=final_quality
             )
 
             # Store in history
@@ -109,16 +100,11 @@ class WeatherSamplingManager:
             return result
 
         except Exception as e:
-            logger.error("Iterative sampling failed",
-                        station_id=station_id, iterations=iterations, error=str(e))
-            raise SamplingError(f"Iterative sampling failed: {str(e)}")
+            logger.error("Iterative sampling failed", station_id=station_id, iterations=iterations, error=str(e))
+            raise SamplingError(f"Iterative sampling failed: {e!s}") from e
 
     async def perform_predictive_sampling(
-        self,
-        client: NetatmoClient,
-        station_id: str,
-        iterations: int,
-        forecast_hours: int = 24
+        self, client: NetatmoClient, station_id: str, iterations: int, forecast_hours: int = 24
     ) -> SamplingResult:
         """
         Perform predictive sampling for weather forecasting.
@@ -137,9 +123,7 @@ class WeatherSamplingManager:
             end_date = datetime.now()
             start_date = end_date - timedelta(days=7)  # Use 7 days of history
 
-            historical_data = await client.get_historical_data(
-                station_id, start_date, end_date
-            )
+            historical_data = await client.get_historical_data(station_id, start_date, end_date)
 
             if len(historical_data) < 24:  # Need at least 24 hours of data
                 raise SamplingError("Insufficient historical data for predictive sampling")
@@ -147,9 +131,7 @@ class WeatherSamplingManager:
             iterations_data = []
 
             for i in range(iterations):
-                iteration_data = await self._predictive_iteration(
-                    historical_data, i + 1, forecast_hours
-                )
+                iteration_data = await self._predictive_iteration(historical_data, i + 1, forecast_hours)
                 iterations_data.append(iteration_data)
 
             # Calculate predictive accuracy
@@ -161,21 +143,17 @@ class WeatherSamplingManager:
                 station_id=station_id,
                 iterations=iterations_data,
                 final_quality_score=predictive_accuracy,
-                predictive_accuracy=predictive_accuracy
+                predictive_accuracy=predictive_accuracy,
             )
 
             return result
 
         except Exception as e:
-            logger.error("Predictive sampling failed",
-                        station_id=station_id, error=str(e))
-            raise SamplingError(f"Predictive sampling failed: {str(e)}")
+            logger.error("Predictive sampling failed", station_id=station_id, error=str(e))
+            raise SamplingError(f"Predictive sampling failed: {e!s}") from e
 
     async def perform_anomaly_detection_sampling(
-        self,
-        client: NetatmoClient,
-        station_id: str,
-        iterations: int
+        self, client: NetatmoClient, station_id: str, iterations: int
     ) -> SamplingResult:
         """
         Perform anomaly detection sampling to identify unusual weather patterns.
@@ -193,9 +171,7 @@ class WeatherSamplingManager:
             end_date = datetime.now()
             start_date = end_date - timedelta(days=30)  # Use 30 days for baseline
 
-            historical_data = await client.get_historical_data(
-                station_id, start_date, end_date
-            )
+            historical_data = await client.get_historical_data(station_id, start_date, end_date)
 
             if len(historical_data) < 168:  # Need at least a week of data
                 raise SamplingError("Insufficient data for anomaly detection")
@@ -203,9 +179,7 @@ class WeatherSamplingManager:
             iterations_data = []
 
             for i in range(iterations):
-                iteration_data = await self._anomaly_detection_iteration(
-                    historical_data, i + 1
-                )
+                iteration_data = await self._anomaly_detection_iteration(historical_data, i + 1)
                 iterations_data.append(iteration_data)
 
             # Detect overall pattern
@@ -217,23 +191,17 @@ class WeatherSamplingManager:
                 station_id=station_id,
                 iterations=iterations_data,
                 final_quality_score=statistics.mean(anomaly_scores) if anomaly_scores else 0.0,
-                pattern_detected=pattern_detected
+                pattern_detected=pattern_detected,
             )
 
             return result
 
         except Exception as e:
-            logger.error("Anomaly detection sampling failed",
-                        station_id=station_id, error=str(e))
-            raise SamplingError(f"Anomaly detection sampling failed: {str(e)}")
+            logger.error("Anomaly detection sampling failed", station_id=station_id, error=str(e))
+            raise SamplingError(f"Anomaly detection sampling failed: {e!s}") from e
 
     async def _single_sampling_iteration(
-        self,
-        client: NetatmoClient,
-        station_id: str,
-        baseline_data: WeatherData,
-        iteration: int,
-        refinement_prompt: str
+        self, client: NetatmoClient, station_id: str, baseline_data: WeatherData, iteration: int, refinement_prompt: str
     ) -> SamplingIteration:
         """Perform a single sampling iteration."""
         # Simulate AI-guided refinement based on prompt
@@ -250,28 +218,27 @@ class WeatherSamplingManager:
             timestamp=datetime.now(),
             data=sample_data,
             quality_score=quality_score,
-            refinement_applied=refinement_type
+            refinement_applied=refinement_type,
         )
 
     async def _predictive_iteration(
-        self,
-        historical_data: List[WeatherData],
-        iteration: int,
-        forecast_hours: int
+        self, historical_data: list[WeatherData], iteration: int, forecast_hours: int
     ) -> SamplingIteration:
         """Perform a single predictive sampling iteration."""
         try:
             # Simple linear regression for temperature prediction
-            df = pd.DataFrame([
-                {
-                    'timestamp': (d.timestamp - historical_data[0].timestamp).total_seconds() / 3600,
-                    'temperature': d.temperature,
-                    'humidity': d.humidity,
-                    'pressure': d.pressure
-                }
-                for d in historical_data
-                if d.temperature is not None
-            ])
+            df = pd.DataFrame(
+                [
+                    {
+                        "timestamp": (d.timestamp - historical_data[0].timestamp).total_seconds() / 3600,
+                        "temperature": d.temperature,
+                        "humidity": d.humidity,
+                        "pressure": d.pressure,
+                    }
+                    for d in historical_data
+                    if d.temperature is not None
+                ]
+            )
 
             if len(df) < 10:
                 return SamplingIteration(
@@ -279,12 +246,12 @@ class WeatherSamplingManager:
                     timestamp=datetime.now(),
                     data={"error": "insufficient_data"},
                     quality_score=0.0,
-                    refinement_applied="insufficient_data"
+                    refinement_applied="insufficient_data",
                 )
 
             # Fit linear model for temperature
-            X = df[['timestamp']].values
-            y = df['temperature'].values
+            X = df[["timestamp"]].values
+            y = df["temperature"].values
 
             model = LinearRegression()
             model.fit(X, y)
@@ -299,15 +266,11 @@ class WeatherSamplingManager:
             prediction_data = {
                 "forecast_hours": forecast_hours,
                 "predictions": [
-                    {
-                        "hour": i + 1,
-                        "temperature": float(pred),
-                        "confidence": confidence
-                    }
+                    {"hour": i + 1, "temperature": float(pred), "confidence": confidence}
                     for i, pred in enumerate(predictions[:forecast_hours])
                 ],
                 "model_accuracy": confidence,
-                "trend": "increasing" if predictions[-1] > predictions[0] else "decreasing"
+                "trend": "increasing" if predictions[-1] > predictions[0] else "decreasing",
             }
 
             return SamplingIteration(
@@ -315,7 +278,7 @@ class WeatherSamplingManager:
                 timestamp=datetime.now(),
                 data=prediction_data,
                 quality_score=confidence,
-                refinement_applied="linear_regression"
+                refinement_applied="linear_regression",
             )
 
         except Exception as e:
@@ -325,13 +288,11 @@ class WeatherSamplingManager:
                 timestamp=datetime.now(),
                 data={"error": str(e)},
                 quality_score=0.0,
-                refinement_applied="error_recovery"
+                refinement_applied="error_recovery",
             )
 
     async def _anomaly_detection_iteration(
-        self,
-        historical_data: List[WeatherData],
-        iteration: int
+        self, historical_data: list[WeatherData], iteration: int
     ) -> SamplingIteration:
         """Perform a single anomaly detection iteration."""
         try:
@@ -344,7 +305,7 @@ class WeatherSamplingManager:
                     timestamp=datetime.now(),
                     data={"error": "insufficient_data"},
                     quality_score=0.0,
-                    refinement_applied="insufficient_data"
+                    refinement_applied="insufficient_data",
                 )
 
             # Calculate rolling statistics
@@ -354,17 +315,19 @@ class WeatherSamplingManager:
 
             # Detect anomalies (values > 2 standard deviations from rolling mean)
             anomalies = []
-            for i, (temp, mean, std) in enumerate(zip(temperatures, rolling_mean, rolling_std)):
+            for i, (temp, mean, std) in enumerate(zip(temperatures, rolling_mean, rolling_std, strict=False)):
                 if mean is not None and std is not None and std > 0:
                     z_score = abs(temp - mean) / std
                     if z_score > 2.0:
-                        anomalies.append({
-                            "index": i,
-                            "temperature": temp,
-                            "expected_range": [mean - 2*std, mean + 2*std],
-                            "z_score": z_score,
-                            "severity": "high" if z_score > 3.0 else "moderate"
-                        })
+                        anomalies.append(
+                            {
+                                "index": i,
+                                "temperature": temp,
+                                "expected_range": [mean - 2 * std, mean + 2 * std],
+                                "z_score": z_score,
+                                "severity": "high" if z_score > 3.0 else "moderate",
+                            }
+                        )
 
             anomaly_data = {
                 "total_points": len(temperatures),
@@ -375,8 +338,8 @@ class WeatherSamplingManager:
                     "mean": statistics.mean(temperatures),
                     "std": statistics.stdev(temperatures),
                     "min": min(temperatures),
-                    "max": max(temperatures)
-                }
+                    "max": max(temperatures),
+                },
             }
 
             # Quality score based on anomaly detection confidence
@@ -387,7 +350,7 @@ class WeatherSamplingManager:
                 timestamp=datetime.now(),
                 data=anomaly_data,
                 quality_score=quality_score,
-                refinement_applied="statistical_anomaly_detection"
+                refinement_applied="statistical_anomaly_detection",
             )
 
         except Exception as e:
@@ -397,15 +360,10 @@ class WeatherSamplingManager:
                 timestamp=datetime.now(),
                 data={"error": str(e)},
                 quality_score=0.0,
-                refinement_applied="error_recovery"
+                refinement_applied="error_recovery",
             )
 
-    def _generate_refined_sample(
-        self,
-        baseline: WeatherData,
-        refinement_type: str,
-        iteration: int
-    ) -> Dict[str, Any]:
+    def _generate_refined_sample(self, baseline: WeatherData, refinement_type: str, iteration: int) -> dict[str, Any]:
         """Generate a refined sample based on the refinement type."""
         # Add some controlled variation
         variation_factor = (iteration - 3) * 0.1  # Center around iteration 3
@@ -417,7 +375,7 @@ class WeatherSamplingManager:
             "co2": baseline.co2,
             "noise": baseline.noise,
             "sample_iteration": iteration,
-            "refinement_type": refinement_type
+            "refinement_type": refinement_type,
         }
 
         if refinement_type == "temperature_focus":
@@ -430,17 +388,14 @@ class WeatherSamplingManager:
 
         return sample
 
-    def _calculate_sample_quality(self, sample_data: Dict[str, Any]) -> float:
+    def _calculate_sample_quality(self, sample_data: dict[str, Any]) -> float:
         """Calculate quality score for a sample."""
         completeness = sum(1 for v in sample_data.values() if v is not None) / len(sample_data)
         variation = abs(hash(str(sample_data)) % 100) / 100.0  # Simple variation proxy
         return (completeness + variation) / 2.0
 
     async def _adapt_refinement_prompt(
-        self,
-        current_prompt: str,
-        previous_iteration: SamplingIteration,
-        current_iteration: SamplingIteration
+        self, current_prompt: str, previous_iteration: SamplingIteration, current_iteration: SamplingIteration
     ) -> str:
         """Adapt refinement prompt based on iteration results."""
         prev_quality = previous_iteration.quality_score
@@ -453,7 +408,7 @@ class WeatherSamplingManager:
         else:
             return current_prompt + " (stable, explore new variations)"
 
-    def _analyze_anomaly_pattern(self, anomaly_scores: List[float]) -> str:
+    def _analyze_anomaly_pattern(self, anomaly_scores: list[float]) -> str:
         """Analyze anomaly pattern from scores."""
         if not anomaly_scores:
             return "no_pattern"

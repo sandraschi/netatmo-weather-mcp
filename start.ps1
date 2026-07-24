@@ -1,10 +1,11 @@
 Param(
     [switch]$Headless,
     [switch]$BackendOnly,
+    [switch]$FrontendOnly,
     [switch]$NoBrowser
 )
 
-# --- SOTA Headless Standard 2026 ---
+# --- Headless mode ---
 if ($Headless -and ($Host.Name -ne 'ConsoleHost' -or -not (Get-Variable -Name "NoRelaunch" -ErrorAction SilentlyContinue))) {
     $argList = @("-File", $PSCommandPath, "-NoRelaunch")
     if ($BackendOnly) { $argList += "-BackendOnly" }
@@ -12,74 +13,80 @@ if ($Headless -and ($Host.Name -ne 'ConsoleHost' -or -not (Get-Variable -Name "N
     Start-Process pwsh.exe -ArgumentList $argList -WindowStyle Hidden
     exit
 }
-# -----------------------------------
 
 $ErrorActionPreference = "Stop"
 $RepoRoot = $PSScriptRoot
-
-Write-Host "=== netatmo-weather-mcp Industrial Startup ===" -ForegroundColor Cyan
-
-# 1. Kill stale
 $WebPort = 10822
 $BackendPort = 10823
-$FleetStartPath = Join-Path $ProjectRoot "scripts\FleetStartMode.ps1"
-if (-not (Test-Path -LiteralPath $FleetStartPath)) {
-    Write-Host "ERROR: Missing vendored launcher helper: $FleetStartPath" -ForegroundColor Red
-    exit 1
-}
-. $FleetStartPath
 
-foreach ($p in @($WebPort, $BackendPort)) {
-    $conns = Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue
-    foreach ($c in $conns) {
-        try { Stop-Process -Id $c.OwningProcess -Force -ErrorAction SilentlyContinue } catch {}
+# -- Require-Command: auto-install missing tools via winget --
+function Require-Command($Name, $WingetId) {
+    if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
+        Write-Host "Installing $Name via winget..." -ForegroundColor Yellow
+        winget install --id $WingetId -e --accept-source-agreements --accept-package-agreements 2>$null
+        $env:PATH = [System.Environment]::GetEnvironmentVariable("PATH","Machine") + ";" + [System.Environment]::GetEnvironmentVariable("PATH","User")
+        if (-not (Get-Command $Name -ErrorAction SilentlyContinue)) {
+            Write-Host "Failed to install $Name. Install manually." -ForegroundColor Red
+            exit 1
+        }
     }
 }
 
-# 2. Python deps
-if ($env:SKIP_SYNC -eq "1") {
-    Write-Host "[1/3] Skipping Python deps (SKIP_SYNC=1)" -ForegroundColor DarkGray
-} else {
-    Write-Host "[1/3] Syncing Python deps (uv sync) ..." -ForegroundColor Cyan
+Require-Command "uv" "astral-sh.uv"
+Require-Command "bun" "Oven-sh.Bun"
+
+Write-Host "=== netatmo-weather-mcp ===" -ForegroundColor Cyan
+
+# -- Kill port zombies --
+foreach ($p in @($WebPort, $BackendPort)) {
+    Get-NetTCPConnection -LocalPort $p -ErrorAction SilentlyContinue |
+        ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+}
+
+# -- Python deps --
+if ($env:SKIP_SYNC -ne "1") {
+    Write-Host "[1/3] uv sync..." -ForegroundColor Cyan
     Set-Location $RepoRoot
     uv sync
     if ($LASTEXITCODE -ne 0) { exit 1 }
 }
 
-# 3. Start Backend
-Write-Host "[2/3] Starting Backend (port $BackendPort) ..." -ForegroundColor Cyan
+# -- Start backend --
+Write-Host "[2/3] Starting backend (port $BackendPort)..." -ForegroundColor Cyan
 $backendProc = Start-Process uv -ArgumentList "run", "uvicorn", "netatmo_weather_mcp.web_app:app", "--host", "127.0.0.1", "--port", "$BackendPort" `
-    -WorkingDirectory $RepoRoot `
-    -PassThru -NoNewWindow
-Write-Host "  [ok] Backend PID: $($backendProc.Id)" -ForegroundColor DarkGreen
+    -WorkingDirectory $RepoRoot -PassThru -NoNewWindow
 
-if ($BackendOnly) {
-    Write-Host "Backend-only mode active. Press Ctrl+C to exit." -ForegroundColor Yellow
-    Wait-Process -Id $backendProc.Id
-    exit
+# Health poll
+Write-Host "  Waiting for backend..." -ForegroundColor Gray
+$ok = $false
+for ($i = 0; $i -lt 60; $i++) {
+    try {
+        $r = Invoke-WebRequest -Uri "http://127.0.0.1:$BackendPort/api/health" -TimeoutSec 2 -UseBasicParsing -ErrorAction SilentlyContinue
+        if ($r.StatusCode -eq 200) { $ok = $true; break }
+    } catch {}
+    Start-Sleep 1
 }
+if (-not $ok) { Write-Host "  Backend failed to start within 60s" -ForegroundColor Red; exit 1 }
+Write-Host "  Backend ready" -ForegroundColor Green
 
-# 4. Start Frontend
-Write-Host "[3/3] Starting Frontend (web_sota) ..." -ForegroundColor Cyan
-if (Test-Path (Join-Path $RepoRoot "web_sota")) {
-    Set-Location (Join-Path $RepoRoot "web_sota")
-    if (-not (Test-Path "node_modules")) { npm install }
-    Start-Process npm -ArgumentList "run", "dev" -WorkingDirectory (Join-Path $RepoRoot "web_sota")
-}
+if ($BackendOnly) { Write-Host "Backend-only mode."; Wait-Process -Id $backendProc.Id; exit }
 
-Write-Host "Startup Complete." -ForegroundColor Green
+# -- Start frontend --
+Write-Host "[3/3] Starting frontend..." -ForegroundColor Cyan
+Set-Location (Join-Path $RepoRoot "web_sota")
+if (-not (Test-Path "node_modules")) { bun install }
+$null = Start-Process bun -ArgumentList "run", "vite", "--port", "$WebPort" -WorkingDirectory (Join-Path $RepoRoot "web_sota")
+
 if (-not $NoBrowser) {
-    # Wait a bit for Vite
-    Start-Sleep -Seconds 2
+    Start-Sleep 3
     Start-Process "http://localhost:$WebPort"
 }
 
+Write-Host "Frontend: http://localhost:$WebPort" -ForegroundColor Green
+
 # Keep alive
 try {
-    while ($true) {
-        Start-Sleep -Seconds 5
-        if ($backendProc.HasExited) { Write-Host "Backend exited!" -ForegroundColor Red; break }
-    }
+    Wait-Process -Id $backendProc.Id
 } finally {
     if ($backendProc -and -not $backendProc.HasExited) {
         Stop-Process -Id $backendProc.Id -Force -ErrorAction SilentlyContinue

@@ -7,17 +7,8 @@ Uses the same WeatherMonitoringTools as the MCP server.
 
 import logging
 import os
+import sys
 from pathlib import Path
-
-# Ensure src is on path when run via uvicorn from repo root or web_sota
-_current_file = Path(__file__).resolve()
-_src = _current_file.parent.parent
-if _src.exists() and str(_src) not in os.environ.get("PYTHONPATH", ""):
-    import sys
-    if str(_src) not in sys.path:
-        sys.path.insert(0, str(_src))
-
-from typing import Optional
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -25,6 +16,13 @@ from pydantic import BaseModel
 
 from .core.netatmo_client import NetatmoCredentials
 from .tools.weather_monitoring import WeatherMonitoringTools
+
+# Ensure src is on path when run via uvicorn from repo root or web_sota
+_current_file = Path(__file__).resolve()
+_src = _current_file.parent.parent
+if _src.exists() and str(_src) not in os.environ.get("PYTHONPATH", ""):
+    if str(_src) not in sys.path:
+        sys.path.insert(0, str(_src))
 
 logger = logging.getLogger(__name__)
 
@@ -37,6 +35,7 @@ class CredentialsBody(BaseModel):
     username: str
     password: str
     scope: str = "read_station"
+
 
 app = FastAPI(
     title="Netatmo Weather MCP API",
@@ -56,8 +55,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-_tools: Optional[WeatherMonitoringTools] = None
-_credentials_override: Optional[NetatmoCredentials] = None
+_tools: WeatherMonitoringTools | None = None
+_credentials_override: NetatmoCredentials | None = None
 
 
 def get_tools() -> WeatherMonitoringTools:
@@ -70,7 +69,37 @@ def get_tools() -> WeatherMonitoringTools:
 @app.get("/api/health")
 async def health():
     """Health check for the webapp backend."""
-    return {"success": True, "status": "online", "service": "netatmo-weather-mcp"}
+    from . import __version__
+
+    return {
+        "success": True,
+        "status": "online",
+        "service": "netatmo-weather-mcp",
+        "version": __version__,
+        "uptime_seconds": 0,
+        "tool_count": 4,
+    }
+
+
+@app.get("/api/v1/diagnostics")
+async def diagnostics():
+    from . import __version__
+
+    return {
+        "status": "ok",
+        "server": "netatmo-weather-mcp",
+        "version": __version__,
+        "uptime_seconds": 0,
+        "tool_count": 4,
+        "tools": [
+            {"name": "weather_station_management", "description": "Station discovery and status"},
+            {"name": "weather_data_operations", "description": "Weather data retrieval and analysis"},
+            {"name": "ai_weather_sampling", "description": "AI-driven sampling workflows"},
+            {"name": "weather_prediction_engine", "description": "Weather forecasting and alerts"},
+        ],
+        "system": {"windows": True},
+        "errors": [],
+    }
 
 
 @app.get("/api/config/credentials")
@@ -97,7 +126,6 @@ async def set_credentials(body: CredentialsBody):
 @app.get("/api/stations")
 async def list_stations():
     """List all Netatmo weather stations."""
-    import asyncio
     tools = get_tools()
     result = await tools.manage_stations("list")
     if not result.get("success"):
@@ -132,4 +160,14 @@ async def get_current_weather(station_id: str):
     result = await tools.process_weather_data("current", station_id)
     if not result.get("success"):
         raise HTTPException(status_code=502, detail=result.get("error", "Weather data failed"))
+    return result
+
+
+@app.get("/api/weather/history")
+async def get_weather_history(station_id: str, timeframe: str = "24h"):
+    """Get historical weather data for a station."""
+    tools = get_tools()
+    result = await tools.process_weather_data("historical", station_id, timeframe)
+    if not result.get("success"):
+        raise HTTPException(status_code=502, detail=result.get("error", "History failed"))
     return result

@@ -5,14 +5,12 @@ Provides FastMCP 2.14.3 sampling method support for iterative weather
 data sampling, pattern recognition, and AI workflow refinement.
 """
 
-from typing import Any, Dict, List, Optional
-from datetime import datetime
+from typing import Any
 
 import structlog
 
-from ..sampling.weather_sampling import WeatherSamplingManager, SamplingResult
 from ..core.netatmo_client import NetatmoClient
-from ..core.exceptions import SamplingError
+from ..sampling.weather_sampling import SamplingResult, WeatherSamplingManager
 
 logger = structlog.get_logger(__name__)
 
@@ -22,7 +20,7 @@ class AISamplingTools:
 
     def __init__(self):
         self._sampling_manager = WeatherSamplingManager()
-        self._client: Optional[NetatmoClient] = None
+        self._client: NetatmoClient | None = None
 
     async def _get_client(self) -> NetatmoClient:
         """Lazy initialization of Netatmo client."""
@@ -31,12 +29,8 @@ class AISamplingTools:
         return self._client
 
     async def perform_sampling(
-        self,
-        sampling_mode: str,
-        station_id: str,
-        iterations: int,
-        refinement_prompt: str
-    ) -> Dict[str, Any]:
+        self, sampling_mode: str, station_id: str, iterations: int, refinement_prompt: str
+    ) -> dict[str, Any]:
         """
         Perform AI-powered weather sampling with iterative refinement.
 
@@ -57,13 +51,9 @@ class AISamplingTools:
                     client, station_id, iterations, refinement_prompt
                 )
             elif sampling_mode == "predictive":
-                result = await self._sampling_manager.perform_predictive_sampling(
-                    client, station_id, iterations
-                )
+                result = await self._sampling_manager.perform_predictive_sampling(client, station_id, iterations)
             elif sampling_mode == "anomaly":
-                result = await self._sampling_manager.perform_anomaly_detection_sampling(
-                    client, station_id, iterations
-                )
+                result = await self._sampling_manager.perform_anomaly_detection_sampling(client, station_id, iterations)
             else:
                 raise ValueError(f"Unsupported sampling mode: {sampling_mode}")
 
@@ -74,7 +64,7 @@ class AISamplingTools:
                     "timestamp": it.timestamp.isoformat(),
                     "data": it.data,
                     "quality_score": it.quality_score,
-                    "refinement_applied": it.refinement_applied
+                    "refinement_applied": it.refinement_applied,
                 }
                 for it in result.iterations
             ]
@@ -88,7 +78,7 @@ class AISamplingTools:
                 "final_quality_score": result.final_quality_score,
                 "ai_workflow_status": "completed",
                 "model_training_ready": len(result.iterations) > 3,
-                "pattern_recognition_enabled": True
+                "pattern_recognition_enabled": True,
             }
 
             if result.pattern_detected:
@@ -99,22 +89,17 @@ class AISamplingTools:
             return response
 
         except Exception as e:
-            logger.error("AI sampling failed",
-                        sampling_mode=sampling_mode, station_id=station_id, error=str(e))
+            logger.error("AI sampling failed", sampling_mode=sampling_mode, station_id=station_id, error=str(e))
             return {
                 "success": False,
                 "sampling_mode": sampling_mode,
                 "station_id": station_id,
                 "error": str(e),
                 "ai_workflow_status": "failed",
-                "error_type": type(e).__name__
+                "error_type": type(e).__name__,
             }
 
-    async def analyze_sampling_patterns(
-        self,
-        station_id: str,
-        analysis_type: str = "trend_analysis"
-    ) -> Dict[str, Any]:
+    async def analyze_sampling_patterns(self, station_id: str, analysis_type: str = "trend_analysis") -> dict[str, Any]:
         """
         Analyze patterns from previous sampling sessions.
 
@@ -135,7 +120,7 @@ class AISamplingTools:
                     "station_id": station_id,
                     "analysis_type": analysis_type,
                     "result": "no_sampling_history",
-                    "message": "No previous sampling sessions found for analysis"
+                    "message": "No previous sampling sessions found for analysis",
                 }
 
             if analysis_type == "trend_analysis":
@@ -153,25 +138,22 @@ class AISamplingTools:
                 "analysis_type": analysis_type,
                 "result": result,
                 "sessions_analyzed": len(history),
-                "ai_insights_generated": True
+                "ai_insights_generated": True,
             }
 
         except Exception as e:
-            logger.error("Pattern analysis failed",
-                        station_id=station_id, analysis_type=analysis_type, error=str(e))
+            logger.error("Pattern analysis failed", station_id=station_id, analysis_type=analysis_type, error=str(e))
             return {
                 "success": False,
                 "station_id": station_id,
                 "analysis_type": analysis_type,
                 "error": str(e),
-                "error_type": type(e).__name__
+                "error_type": type(e).__name__,
             }
 
     async def generate_sampling_insights(
-        self,
-        station_id: str,
-        insight_type: str = "optimization_suggestions"
-    ) -> Dict[str, Any]:
+        self, station_id: str, insight_type: str = "optimization_suggestions"
+    ) -> dict[str, Any]:
         """
         Generate AI insights from sampling data.
 
@@ -196,9 +178,7 @@ class AISamplingTools:
             history = self._sampling_manager._sampling_history.get(station_id, [])
             recent_session = history[-1] if history else None
 
-            insights = await self._generate_insights(
-                station, recent_session, insight_type
-            )
+            insights = await self._generate_insights(station, recent_session, insight_type)
 
             return {
                 "success": True,
@@ -207,21 +187,20 @@ class AISamplingTools:
                 "insights": insights,
                 "station_status": "online" if station.reachable else "offline",
                 "ai_generated": True,
-                "confidence_level": "high" if recent_session else "medium"
+                "confidence_level": "high" if recent_session else "medium",
             }
 
         except Exception as e:
-            logger.error("Insight generation failed",
-                        station_id=station_id, insight_type=insight_type, error=str(e))
+            logger.error("Insight generation failed", station_id=station_id, insight_type=insight_type, error=str(e))
             return {
                 "success": False,
                 "station_id": station_id,
                 "insight_type": insight_type,
                 "error": str(e),
-                "error_type": type(e).__name__
+                "error_type": type(e).__name__,
             }
 
-    async def _analyze_trend_patterns(self, history: List[SamplingResult]) -> Dict[str, Any]:
+    async def _analyze_trend_patterns(self, history: list[SamplingResult]) -> dict[str, Any]:
         """Analyze trend patterns from sampling history."""
         if not history:
             return {"pattern": "no_data"}
@@ -242,10 +221,10 @@ class AISamplingTools:
             "average_quality": sum(quality_scores) / len(quality_scores),
             "best_session": max(quality_scores),
             "worst_session": min(quality_scores),
-            "consistency_score": 1.0 - (max(quality_scores) - min(quality_scores))
+            "consistency_score": 1.0 - (max(quality_scores) - min(quality_scores)),
         }
 
-    async def _analyze_quality_improvement(self, history: List[SamplingResult]) -> Dict[str, Any]:
+    async def _analyze_quality_improvement(self, history: list[SamplingResult]) -> dict[str, Any]:
         """Analyze quality improvement over sampling sessions."""
         if len(history) < 2:
             return {"improvement": "insufficient_data"}
@@ -262,10 +241,10 @@ class AISamplingTools:
             "absolute_change": improvement,
             "relative_change": improvement_rate,
             "sessions_for_improvement": len(history),
-            "learning_efficiency": improvement_rate / len(history)
+            "learning_efficiency": improvement_rate / len(history),
         }
 
-    async def _analyze_predictive_accuracy(self, history: List[SamplingResult]) -> Dict[str, Any]:
+    async def _analyze_predictive_accuracy(self, history: list[SamplingResult]) -> dict[str, Any]:
         """Analyze predictive accuracy from sampling history."""
         predictive_sessions = [h for h in history if h.predictive_accuracy is not None]
 
@@ -280,43 +259,46 @@ class AISamplingTools:
             "worst_accuracy": min(accuracies),
             "predictive_sessions": len(predictive_sessions),
             "accuracy_stability": 1.0 - (max(accuracies) - min(accuracies)),
-            "forecasting_reliability": "high" if sum(accuracies) / len(accuracies) > 0.8 else "moderate"
+            "forecasting_reliability": "high" if sum(accuracies) / len(accuracies) > 0.8 else "moderate",
         }
 
     async def _generate_insights(
-        self,
-        station: Any,
-        recent_session: Optional[SamplingResult],
-        insight_type: str
-    ) -> Dict[str, Any]:
+        self, station: Any, recent_session: SamplingResult | None, insight_type: str
+    ) -> dict[str, Any]:
         """Generate specific insights based on type."""
 
         if insight_type == "optimization_suggestions":
             suggestions = []
 
             if not station.reachable:
-                suggestions.append({
-                    "priority": "high",
-                    "suggestion": "Check station connectivity and network status",
-                    "impact": "high",
-                    "effort": "medium"
-                })
+                suggestions.append(
+                    {
+                        "priority": "high",
+                        "suggestion": "Check station connectivity and network status",
+                        "impact": "high",
+                        "effort": "medium",
+                    }
+                )
 
             if recent_session and recent_session.final_quality_score < 0.7:
-                suggestions.append({
-                    "priority": "medium",
-                    "suggestion": "Improve sampling parameters for better data quality",
-                    "impact": "medium",
-                    "effort": "low"
-                })
+                suggestions.append(
+                    {
+                        "priority": "medium",
+                        "suggestion": "Improve sampling parameters for better data quality",
+                        "impact": "medium",
+                        "effort": "low",
+                    }
+                )
 
             if len(station.data_types) < 3:
-                suggestions.append({
-                    "priority": "low",
-                    "suggestion": "Consider adding more sensor modules for comprehensive monitoring",
-                    "impact": "low",
-                    "effort": "high"
-                })
+                suggestions.append(
+                    {
+                        "priority": "low",
+                        "suggestion": "Consider adding more sensor modules for comprehensive monitoring",
+                        "impact": "low",
+                        "effort": "high",
+                    }
+                )
 
             return {"optimization_suggestions": suggestions}
 
@@ -324,20 +306,24 @@ class AISamplingTools:
             opportunities = []
 
             if station.reachable and "temperature" in station.data_types:
-                opportunities.append({
-                    "automation_type": "climate_control",
-                    "description": "Temperature-based HVAC automation",
-                    "confidence": 0.85,
-                    "implementation_complexity": "medium"
-                })
+                opportunities.append(
+                    {
+                        "automation_type": "climate_control",
+                        "description": "Temperature-based HVAC automation",
+                        "confidence": 0.85,
+                        "implementation_complexity": "medium",
+                    }
+                )
 
             if "rain" in station.data_types:
-                opportunities.append({
-                    "automation_type": "irrigation_control",
-                    "description": "Weather-based irrigation system control",
-                    "confidence": 0.75,
-                    "implementation_complexity": "low"
-                })
+                opportunities.append(
+                    {
+                        "automation_type": "irrigation_control",
+                        "description": "Weather-based irrigation system control",
+                        "confidence": 0.75,
+                        "implementation_complexity": "low",
+                    }
+                )
 
             return {"automation_opportunities": opportunities}
 
@@ -345,12 +331,14 @@ class AISamplingTools:
             alerts = []
 
             if recent_session and recent_session.pattern_detected == "high_anomaly_rate":
-                alerts.append({
-                    "alert_type": "weather_anomaly",
-                    "severity": "high",
-                    "description": "Unusual weather patterns detected",
-                    "recommended_action": "Review recent weather data and consider protective measures"
-                })
+                alerts.append(
+                    {
+                        "alert_type": "weather_anomaly",
+                        "severity": "high",
+                        "description": "Unusual weather patterns detected",
+                        "recommended_action": "Review recent weather data and consider protective measures",
+                    }
+                )
 
             return {"anomaly_alerts": alerts}
 

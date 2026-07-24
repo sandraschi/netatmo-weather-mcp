@@ -1,0 +1,14 @@
+{
+    "product_name": "Netatmo Weather MCP",
+    "install_dir": "%LOCALAPPDATA%\\Netatmo Weather MCP",
+    "operator_exe": "netatmo-weather-mcp-native.exe",
+    "backend_process_names": ["netatmo-weather-mcp-native", "netatmo-weather-mcp-backend"],
+    "backend_port": 10823,
+    "health_path": "/api/v1/health",
+    "diagnostics_path": "/api/v1/diagnostics",
+    "feature_smoke_path": "/api/v1/system/info",
+    "window_title_re": "Netatmo Weather MCP",
+    "nsis_glob": "native/target/release/bundle/nsis/Netatmo Weather MCP_*_x64-setup.exe",
+    "bridge_ok_text": "REST bridge reachable",
+    "uninstall_registry_filter": "*Netatmo Weather MCP*"
+}

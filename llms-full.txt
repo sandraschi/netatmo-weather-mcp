@@ -1,0 +1,116 @@
+# netatmo-weather-mcp — Full Reference
+
+## Overview
+
+FastMCP 3.4+ server for Netatmo weather stations. Provides weather monitoring,
+AI-powered sampling workflows, predictive analytics, and a React webapp dashboard.
+
+### Architecture
+
+```
+User / MCP Client → FastMCP Server → Netatmo API
+                        │
+                    Webapp (FastAPI + Vite)
+                        │
+                    Dashboard (React + Tailwind)
+```
+
+### Storage
+
+No local database. All weather data is fetched live from the Netatmo cloud API on every
+call. Historical data is whatever the Netatmo API returns; there is no local SQLite cache
+or time-series persistence. In-memory caching via `aiocache` (TTL: `CACHE_TTL_SECONDS`,
+default 300s) reduces redundant API calls within a session.
+
+### Required env vars
+
+| Variable | Description |
+|----------|-------------|
+| `NETATMO_CLIENT_ID` | Netatmo API client ID |
+| `NETATMO_CLIENT_SECRET` | Netatmo API client secret |
+| `NETATMO_USERNAME` | Netatmo account email |
+| `NETATMO_PASSWORD` | Netatmo account password |
+
+### Optional env vars
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `NETATMO_SCOPE` | `read_station` | API scope |
+| `MCP_TRANSPORT` | `stdio` | Transport mode (stdio, http, sse) |
+| `MCP_PORT` | `10823` | HTTP port |
+| `METRICS_PORT` | `9091` | Prometheus metrics |
+| `ENABLE_METRICS` | `true` | Enable Prometheus |
+| `LOG_LEVEL` | `INFO` | Logging level |
+| `CACHE_TTL_SECONDS` | `300` | Cache TTL |
+
+---
+
+## Tools
+
+### weather_station_management
+
+Portmanteau tool for weather station discovery and status.
+
+**Operations:**
+- `list` — List all available stations
+- `get_info` — Detailed info for one station (requires station_id)
+- `get_status` — Reachability/status check (requires station_id)
+
+### weather_data_operations
+
+Portmanteau tool for weather data retrieval and analysis.
+
+**Operations:**
+- `current` — Latest measurements (temperature, humidity, pressure, CO2, noise, rain, wind)
+- `historical` — Time-windowed historical data (timeframe: 1h, 24h, 7d, etc.)
+- `sample` — AI-generated sample variations (5 samples by default)
+- `analyze` — Basic statistical analysis over last 24h of data
+
+### ai_weather_sampling
+
+Portmanteau tool for AI-driven sampling workflows.
+
+**Operations:**
+- `iterative` — AI-guided iterative sampling with adaptive refinement
+- `predictive` — Linear regression-based forecasting (requires 7d+ history)
+- `anomaly` — Statistical anomaly detection (requires 30d+ data, 2σ threshold)
+
+### weather_prediction_engine
+
+Portmanteau tool for weather forecasting and alerts.
+
+**Operations:**
+- `short_term` — Trend-based forecast (requires 6h+ data)
+- `trend_analysis` — Multi-metric trend analysis (temperature, humidity, pressure)
+- `anomaly_detection` — Statistical outlier detection with severity scoring
+
+---
+
+## REST API (webapp backend)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/health` | GET | Health check |
+| `/api/config/credentials` | GET/POST | Session credential management |
+| `/api/stations` | GET | List stations |
+| `/api/stations/{station_id}` | GET | Station details |
+| `/api/stations/{station_id}/status` | GET | Station status |
+| `/api/weather/current` | GET | Current weather (query: station_id) |
+
+---
+
+## Webapp
+
+React + Vite + TailwindCSS dashboard on ports 10822 (frontend) / 10823 (backend).
+
+---
+
+## Monitoring
+
+Prometheus metrics exposed at `:9091/metrics`:
+- `netatmo_requests_total` — Request count by method/endpoint
+- `netatmo_request_duration_seconds` — Request latency histogram
+- `netatmo_active_connections` — Active connection gauge
+- `netatmo_weather_samples_total` — Weather samples counter
+
+Structured logging via structlog with JSON output.

@@ -2,14 +2,14 @@
 Unit tests for Netatmo API client.
 """
 
-import pytest
+import os
 from datetime import datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock, patch
 
-from netatmo_weather_mcp.core.netatmo_client import NetatmoClient, WeatherStation, WeatherData
-from netatmo_weather_mcp.core.exceptions import (
-    AuthenticationError, DeviceNotFoundError, DataUnavailableError
-)
+import pytest
+
+from netatmo_weather_mcp.core.exceptions import AuthenticationError, ConfigurationError, DeviceNotFoundError
+from netatmo_weather_mcp.core.netatmo_client import NetatmoClient, WeatherData
 
 
 class TestNetatmoClient:
@@ -18,7 +18,7 @@ class TestNetatmoClient:
     @pytest.mark.asyncio
     async def test_get_stations_success(self, mock_env_vars, sample_api_response):
         """Test successful station retrieval."""
-        with patch('pyatmo.NetatmoOAuth2') as mock_oauth:
+        with patch("pyatmo.NetatmoOAuth2") as mock_oauth:
             mock_client = MagicMock()
             mock_oauth.return_value = mock_client
             mock_client.get_stations_data = MagicMock(return_value=sample_api_response)
@@ -36,7 +36,7 @@ class TestNetatmoClient:
     @pytest.mark.asyncio
     async def test_get_stations_authentication_error(self, mock_env_vars):
         """Test authentication error handling."""
-        with patch('pyatmo.NetatmoOAuth2') as mock_oauth:
+        with patch("pyatmo.NetatmoOAuth2") as mock_oauth:
             mock_oauth.side_effect = Exception("Invalid credentials")
 
             client = NetatmoClient()
@@ -47,23 +47,24 @@ class TestNetatmoClient:
     @pytest.mark.asyncio
     async def test_get_station_data_success(self, mock_env_vars, sample_weather_station):
         """Test successful weather data retrieval."""
-        with patch('pyatmo.NetatmoOAuth2') as mock_oauth, \
-             patch.object(NetatmoClient, 'get_stations', new_callable=AsyncMock) as mock_get_stations:
-
+        with (
+            patch("pyatmo.NetatmoOAuth2") as mock_oauth,
+            patch.object(NetatmoClient, "get_stations", new_callable=AsyncMock) as mock_get_stations,
+        ):
             mock_get_stations.return_value = [sample_weather_station]
 
             mock_client = MagicMock()
             mock_oauth.return_value = mock_client
-            mock_client.get_measure = MagicMock(return_value={
-                'body': [{
-                    'time_utc': int(datetime.now().timestamp()),
-                    'dashboard_data': {
-                        'Temperature': 22.5,
-                        'Humidity': 65,
-                        'Pressure': 1013.2
-                    }
-                }]
-            })
+            mock_client.get_measure = MagicMock(
+                return_value={
+                    "body": [
+                        {
+                            "time_utc": int(datetime.now().timestamp()),
+                            "dashboard_data": {"Temperature": 22.5, "Humidity": 65, "Pressure": 1013.2},
+                        }
+                    ]
+                }
+            )
 
             client = NetatmoClient()
             data = await client.get_station_data("70:ee:50:12:34:56")
@@ -75,9 +76,10 @@ class TestNetatmoClient:
     @pytest.mark.asyncio
     async def test_get_station_data_not_found(self, mock_env_vars):
         """Test station not found error."""
-        with patch('pyatmo.NetatmoOAuth2') as mock_oauth, \
-             patch.object(NetatmoClient, 'get_stations', new_callable=AsyncMock) as mock_get_stations:
-
+        with (
+            patch("pyatmo.NetatmoOAuth2") as mock_oauth,
+            patch.object(NetatmoClient, "get_stations", new_callable=AsyncMock) as mock_get_stations,
+        ):
             mock_get_stations.return_value = []  # No stations found
             mock_oauth.return_value = MagicMock()
 
@@ -89,10 +91,10 @@ class TestNetatmoClient:
     @pytest.mark.asyncio
     async def test_get_historical_data_success(self, mock_env_vars, sample_historical_data):
         """Test successful historical data retrieval."""
-        with patch('pyatmo.NetatmoOAuth2') as mock_oauth:
+        with patch("pyatmo.NetatmoOAuth2") as mock_oauth:
             mock_client = MagicMock()
             mock_oauth.return_value = mock_client
-            mock_client.get_measure = MagicMock(return_value={'body': sample_historical_data})
+            mock_client.get_measure = MagicMock(return_value={"body": sample_historical_data})
 
             client = NetatmoClient()
             start_date = datetime.now() - timedelta(hours=24)
@@ -107,7 +109,7 @@ class TestNetatmoClient:
     @pytest.mark.asyncio
     async def test_health_check_success(self, mock_env_vars):
         """Test successful health check."""
-        with patch.object(NetatmoClient, 'get_stations', new_callable=AsyncMock) as mock_get_stations:
+        with patch.object(NetatmoClient, "get_stations", new_callable=AsyncMock) as mock_get_stations:
             mock_get_stations.return_value = [MagicMock(reachable=True)]
 
             client = NetatmoClient()
@@ -120,7 +122,7 @@ class TestNetatmoClient:
     @pytest.mark.asyncio
     async def test_health_check_failure(self, mock_env_vars):
         """Test health check failure."""
-        with patch.object(NetatmoClient, 'get_stations', new_callable=AsyncMock) as mock_get_stations:
+        with patch.object(NetatmoClient, "get_stations", new_callable=AsyncMock) as mock_get_stations:
             mock_get_stations.side_effect = AuthenticationError("Auth failed")
 
             client = NetatmoClient()
@@ -132,9 +134,7 @@ class TestNetatmoClient:
     @pytest.mark.asyncio
     async def test_rate_limiting(self, mock_env_vars):
         """Test rate limiting functionality."""
-        with patch('pyatmo.NetatmoOAuth2') as mock_oauth, \
-             patch('asyncio.sleep') as mock_sleep:
-
+        with patch("pyatmo.NetatmoOAuth2") as mock_oauth, patch("asyncio.sleep") as mock_sleep:
             mock_client = MagicMock()
             mock_oauth.return_value = mock_client
             mock_client.get_stations_data = MagicMock(return_value={"homes": []})
@@ -162,14 +162,13 @@ class TestNetatmoClient:
         """Test error when required credentials are missing."""
         # Clear environment
         original_env = dict(os.environ)
-        required_vars = ['NETATMO_CLIENT_ID', 'NETATMO_CLIENT_SECRET',
-                        'NETATMO_USERNAME', 'NETATMO_PASSWORD']
+        required_vars = ["NETATMO_CLIENT_ID", "NETATMO_CLIENT_SECRET", "NETATMO_USERNAME", "NETATMO_PASSWORD"]
 
         for var in required_vars:
             os.environ.pop(var, None)
 
         try:
-            with pytest.raises(Exception):  # ConfigurationError
+            with pytest.raises(ConfigurationError):
                 NetatmoClient()
         finally:
             # Restore environment

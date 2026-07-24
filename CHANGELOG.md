@@ -8,6 +8,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [Unreleased]
 
 ### Added
+- `llms.txt`, `llms-full.txt`, `glama.json` — fleet documentation and discovery files
+- `PRD.md` — product requirements document
+
+### Changed
+- **Spec file**: Fleet-standard PyInstaller config (`noarchive=True`, `upx=False`, SKIP list, .dist-info preserve)
+- **Transport layer**: CORS per fleet standard (Tauri origins + Tailscale regex), `run_http_async` replaced with `uvicorn.Server`
+- **pyproject.toml**: Removed legacy black/isort/mypy config (ruff handles all)
+- **AGENTS.md**: Expanded with ports, key files, tool patterns
+- **MCD project page**: Concise rewrite with ports, architecture, tool table
+
+### Fixed
+- Undefined `NetatmoOAuth2` in netatmo_client.py (replaced with `AsyncAccount`)
+- Missing `import os` in test file, blind `pytest.raises(Exception)` (B017)
+- 207 ruff lint issues auto-fixed, 15 manual fixes (B904, F821, E402, E501)
+
+### Added
 - **Industrial Startup Script**: Root `start.ps1` with `-Headless`, `-BackendOnly`, and `-NoBrowser` support.
 - **Improved Port Handling**: Automatic TCP squatter termination and health-check polling.
 - **Webapp backend (FastAPI):** `web_app.py` exposes REST API for the React frontend: `GET /api/health`, `GET /api/stations`, `GET /api/stations/{id}`, `GET /api/stations/{id}/status`, `GET /api/weather/current?station_id=...`, `GET /api/config/credentials`, `POST /api/config/credentials`.

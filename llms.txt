@@ -1,0 +1,40 @@
+# netatmo-weather-mcp
+
+> Netatmo Weather Station MCP Server — AI-powered weather monitoring with sampling and predictive analytics.
+
+## Key Links
+
+- [llms-full.txt](llms-full.txt) — Full tool reference, configuration, and architecture
+- [README.md](README.md) — User-facing documentation
+- [INSTALL.md](INSTALL.md) — Installation and setup
+- [CHANGELOG.md](CHANGELOG.md) — Release history
+
+## Quick Start
+
+```powershell
+cp .env.example .env
+# Edit .env with your Netatmo credentials
+just serve
+```
+
+## Core Tools
+
+- `weather_station_management` — List, get info, or check status of Netatmo stations
+- `weather_data_operations` — Current, historical, sample, or analyze weather data
+- `ai_weather_sampling` — Iterative, predictive, or anomaly AI sampling
+- `weather_prediction_engine` — Short-term forecast, trend analysis, anomaly detection
+
+## Ports
+
+| Service | Port |
+|---------|------|
+| Webapp frontend | 10822 |
+| Webapp backend | 10823 |
+
+## Data Storage
+
+No local database. All data fetched live from Netatmo cloud API. In-memory cache only (300s TTL).
+
+## Monitoring
+
+Prometheus metrics on port 9091, structured logging via structlog.

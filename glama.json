@@ -1,0 +1,15 @@
+{
+  "$schema": "https://glama.ai/mcp/schemas/2025/S-1.json",
+  "name": "netatmo-weather-mcp",
+  "displayName": "Netatmo Weather MCP",
+  "description": "AI-powered weather monitoring with sampling and predictive analytics for Netatmo weather stations.",
+  "categories": ["Weather", "Monitoring", "IoT"],
+  "tags": ["netatmo", "weather", "temperature", "humidity", "forecast", "mcp"],
+  "publisher": "sandraschi",
+  "homepage": "https://github.com/sandraschi/netatmo-weather-mcp",
+  "icon": "https://raw.githubusercontent.com/sandraschi/netatmo-weather-mcp/main/native/icons/icon.png",
+  "capabilities": {
+    "tools": {},
+    "resources": {}
+  }
+}

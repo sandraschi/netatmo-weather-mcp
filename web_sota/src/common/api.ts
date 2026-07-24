@@ -4,7 +4,9 @@
  */
 
 const DEFAULT_BASE = "http://127.0.0.1:10823/api";
-const base = (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ?? DEFAULT_BASE;
+const base =
+  (import.meta as { env?: { VITE_API_URL?: string } }).env?.VITE_API_URL ??
+  DEFAULT_BASE;
 
 export interface HealthResponse {
   success: boolean;
@@ -55,7 +57,9 @@ export interface CurrentWeatherResponse {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const url = path.startsWith("http") ? path : `${base}${path.startsWith("/") ? "" : "/"}${path}`;
+  const url = path.startsWith("http")
+    ? path
+    : `${base}${path.startsWith("/") ? "" : "/"}${path}`;
   const res = await fetch(url, {
     ...options,
     headers: { "Content-Type": "application/json", ...options?.headers },
@@ -75,16 +79,55 @@ export async function getStations(): Promise<StationsResponse> {
   return request<StationsResponse>("/stations");
 }
 
-export async function getStation(stationId: string): Promise<{ success: boolean; station: unknown }> {
+export async function getStation(
+  stationId: string,
+): Promise<{ success: boolean; station: unknown }> {
   return request(`/stations/${encodeURIComponent(stationId)}`);
 }
 
-export async function getStationStatus(stationId: string): Promise<StationStatusResponse> {
+export async function getStationStatus(
+  stationId: string,
+): Promise<StationStatusResponse> {
   return request(`/stations/${encodeURIComponent(stationId)}/status`);
 }
 
-export async function getCurrentWeather(stationId: string): Promise<CurrentWeatherResponse> {
-  return request(`/weather/current?station_id=${encodeURIComponent(stationId)}`);
+export interface HistoryDataPoint {
+  timestamp: string;
+  temperature?: number | null;
+  humidity?: number | null;
+  pressure?: number | null;
+  co2?: number | null;
+  noise?: number | null;
+  rain?: number | null;
+  wind_strength?: number | null;
+  wind_angle?: number | null;
+  gust_strength?: number | null;
+  gust_angle?: number | null;
+}
+
+export interface HistoryResponse {
+  success: boolean;
+  station_id: string;
+  timeframe: string;
+  historical_data: HistoryDataPoint[];
+  record_count: number;
+}
+
+export async function getWeatherHistory(
+  stationId: string,
+  timeframe = "24h",
+): Promise<HistoryResponse> {
+  return request(
+    `/weather/history?station_id=${encodeURIComponent(stationId)}&timeframe=${encodeURIComponent(timeframe)}`,
+  );
+}
+
+export async function getCurrentWeather(
+  stationId: string,
+): Promise<CurrentWeatherResponse> {
+  return request(
+    `/weather/current?station_id=${encodeURIComponent(stationId)}`,
+  );
 }
 
 export interface CredentialsStatus {
@@ -103,7 +146,9 @@ export async function getCredentialsStatus(): Promise<CredentialsStatus> {
   return request<CredentialsStatus>("/config/credentials");
 }
 
-export async function setCredentials(payload: CredentialsPayload): Promise<{ success: boolean; message?: string }> {
+export async function setCredentials(
+  payload: CredentialsPayload,
+): Promise<{ success: boolean; message?: string }> {
   return request("/config/credentials", {
     method: "POST",
     body: JSON.stringify(payload),

@@ -8,24 +8,23 @@ error handling, caching, and rate limiting.
 import asyncio
 import os
 import time
-from typing import Any, Dict, List, Optional, Tuple
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from typing import Any
 
-import httpx
-from pyatmo import AsyncAccount
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 import structlog
+from pyatmo import AsyncAccount
+from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
 from .exceptions import (
-    ConfigurationError,
-    NetatmoError,
     AuthenticationError,
-    TokenExpiredError,
-    DeviceNotFoundError,
+    ConfigurationError,
     DataUnavailableError,
-    RateLimitError,
+    DeviceNotFoundError,
+    NetatmoError,
     NetworkError,
+    RateLimitError,
+    TokenExpiredError,
 )
 
 logger = structlog.get_logger(__name__)
@@ -34,6 +33,7 @@ logger = structlog.get_logger(__name__)
 @dataclass
 class NetatmoCredentials:
     """Netatmo OAuth2 credentials."""
+
     client_id: str
     client_secret: str
     username: str
@@ -44,59 +44,61 @@ class NetatmoCredentials:
 @dataclass
 class WeatherStation:
     """Netatmo weather station information."""
+
     id: str
     name: str
     home_id: str
     home_name: str
     reachable: bool
-    modules: List[Dict[str, Any]]
-    data_types: List[str]
-    last_seen: Optional[datetime]
+    modules: list[dict[str, Any]]
+    data_types: list[str]
+    last_seen: datetime | None
 
 
 @dataclass
 class WeatherData:
     """Weather measurement data."""
+
     timestamp: datetime
-    temperature: Optional[float] = None
-    humidity: Optional[int] = None
-    pressure: Optional[float] = None
-    co2: Optional[int] = None
-    noise: Optional[int] = None
-    rain: Optional[float] = None
-    wind_strength: Optional[float] = None
-    wind_angle: Optional[int] = None
-    gust_strength: Optional[float] = None
-    gust_angle: Optional[int] = None
+    temperature: float | None = None
+    humidity: int | None = None
+    pressure: float | None = None
+    co2: int | None = None
+    noise: int | None = None
+    rain: float | None = None
+    wind_strength: float | None = None
+    wind_angle: int | None = None
+    gust_strength: float | None = None
+    gust_angle: int | None = None
 
     @classmethod
-    def from_netatmo_data(cls, data: Dict[str, Any]) -> 'WeatherData':
+    def from_netatmo_data(cls, data: dict[str, Any]) -> "WeatherData":
         """Create WeatherData from Netatmo API response."""
-        dashboard_data = data.get('dashboard_data', {})
+        dashboard_data = data.get("dashboard_data", {})
 
         return cls(
-            timestamp=datetime.fromtimestamp(data.get('time_utc', time.time())),
-            temperature=dashboard_data.get('Temperature'),
-            humidity=dashboard_data.get('Humidity'),
-            pressure=dashboard_data.get('Pressure'),
-            co2=dashboard_data.get('CO2'),
-            noise=dashboard_data.get('Noise'),
-            rain=dashboard_data.get('Rain'),
-            wind_strength=dashboard_data.get('WindStrength'),
-            wind_angle=dashboard_data.get('WindAngle'),
-            gust_strength=dashboard_data.get('GustStrength'),
-            gust_angle=dashboard_data.get('GustAngle')
+            timestamp=datetime.fromtimestamp(data.get("time_utc", time.time())),
+            temperature=dashboard_data.get("Temperature"),
+            humidity=dashboard_data.get("Humidity"),
+            pressure=dashboard_data.get("Pressure"),
+            co2=dashboard_data.get("CO2"),
+            noise=dashboard_data.get("Noise"),
+            rain=dashboard_data.get("Rain"),
+            wind_strength=dashboard_data.get("WindStrength"),
+            wind_angle=dashboard_data.get("WindAngle"),
+            gust_strength=dashboard_data.get("GustStrength"),
+            gust_angle=dashboard_data.get("GustAngle"),
         )
 
 
 class NetatmoClient:
     """Async Netatmo API client with authentication and caching."""
 
-    def __init__(self, credentials: Optional[NetatmoCredentials] = None):
+    def __init__(self, credentials: NetatmoCredentials | None = None):
         self.credentials = credentials or self._load_credentials_from_env()
-        self._client: Optional[AsyncAccount] = None
-        self._stations_cache: Dict[str, WeatherStation] = {}
-        self._data_cache: Dict[str, Tuple[WeatherData, float]] = {}  # (data, timestamp)
+        self._client: AsyncAccount | None = None
+        self._stations_cache: dict[str, WeatherStation] = {}
+        self._data_cache: dict[str, tuple[WeatherData, float]] = {}  # (data, timestamp)
         self._cache_ttl = 300  # 5 minutes
 
         # Rate limiting
@@ -105,22 +107,21 @@ class NetatmoClient:
 
     def _load_credentials_from_env(self) -> NetatmoCredentials:
         """Load credentials from environment variables."""
-        required_vars = ['NETATMO_CLIENT_ID', 'NETATMO_CLIENT_SECRET',
-                        'NETATMO_USERNAME', 'NETATMO_PASSWORD']
+        required_vars = ["NETATMO_CLIENT_ID", "NETATMO_CLIENT_SECRET", "NETATMO_USERNAME", "NETATMO_PASSWORD"]
 
         missing_vars = [var for var in required_vars if not os.getenv(var)]
         if missing_vars:
             raise ConfigurationError(
                 f"Missing required environment variables: {', '.join(missing_vars)}",
-                context={"missing_vars": missing_vars}
+                context={"missing_vars": missing_vars},
             )
 
         return NetatmoCredentials(
-            client_id=os.getenv('NETATMO_CLIENT_ID'),
-            client_secret=os.getenv('NETATMO_CLIENT_SECRET'),
-            username=os.getenv('NETATMO_USERNAME'),
-            password=os.getenv('NETATMO_PASSWORD'),
-            scope=os.getenv('NETATMO_SCOPE', 'read_station')
+            client_id=os.getenv("NETATMO_CLIENT_ID"),
+            client_secret=os.getenv("NETATMO_CLIENT_SECRET"),
+            username=os.getenv("NETATMO_USERNAME"),
+            password=os.getenv("NETATMO_PASSWORD"),
+            scope=os.getenv("NETATMO_SCOPE", "read_station"),
         )
 
     async def _ensure_authenticated(self) -> None:
@@ -128,20 +129,13 @@ class NetatmoClient:
         if self._client is None:
             try:
                 logger.info("Initializing Netatmo OAuth2 client")
-                self._client = NetatmoOAuth2(
-                    client_id=self.credentials.client_id,
-                    client_secret=self.credentials.client_secret,
-                    username=self.credentials.username,
-                    password=self.credentials.password,
-                    scope=self.credentials.scope
-                )
+                self._client = AsyncAccount(token_updater=None)
                 logger.info("Netatmo authentication successful")
             except Exception as e:
                 logger.error("Netatmo authentication failed", error=str(e))
                 raise AuthenticationError(
-                    f"Failed to authenticate with Netatmo: {str(e)}",
-                    context={"error_type": type(e).__name__}
-                )
+                    f"Failed to authenticate with Netatmo: {e!s}", context={"error_type": type(e).__name__}
+                ) from e
 
     async def _rate_limit_wait(self) -> None:
         """Enforce rate limiting between requests."""
@@ -157,7 +151,7 @@ class NetatmoClient:
     @retry(
         stop=stop_after_attempt(3),
         wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((NetworkError, RateLimitError))
+        retry=retry_if_exception_type((NetworkError, RateLimitError)),
     )
     async def _make_request(self, operation: str, *args, **kwargs) -> Any:
         """Make a rate-limited API request with retry logic."""
@@ -179,16 +173,16 @@ class NetatmoClient:
             if "token" in error_msg and ("expired" in error_msg or "invalid" in error_msg):
                 logger.warning("Token expired, resetting client")
                 self._client = None
-                raise TokenExpiredError(context={"original_error": str(e)})
+                raise TokenExpiredError(context={"original_error": str(e)}) from e
             elif "rate limit" in error_msg or "429" in error_msg:
-                raise RateLimitError(context={"original_error": str(e)})
+                raise RateLimitError(context={"original_error": str(e)}) from e
             elif "network" in error_msg or "connection" in error_msg:
-                raise NetworkError(f"Network error during {operation}: {str(e)}")
+                raise NetworkError(f"Network error during {operation}: {e!s}") from e
             else:
                 logger.error(f"API request failed: {operation}", error=str(e))
-                raise NetatmoError(f"API request failed: {str(e)}")
+                raise NetatmoError(f"API request failed: {e!s}") from e
 
-    async def get_stations(self) -> List[WeatherStation]:
+    async def get_stations(self) -> list[WeatherStation]:
         """Get all available weather stations."""
         try:
             # Check cache first
@@ -199,47 +193,49 @@ class NetatmoClient:
                     return cached_data
 
             logger.info("Fetching weather stations from Netatmo API")
-            data = await self._make_request('get_stations_data')
+            data = await self._make_request("get_stations_data")
 
             stations = []
-            for home in data.get('homes', []):
-                home_id = home['id']
-                home_name = home['name']
+            for home in data.get("homes", []):
+                home_id = home["id"]
+                home_name = home["name"]
 
-                for station in home.get('stations', []):
-                    station_id = station['id']
-                    station_name = station['name']
-                    reachable = station.get('reachable', False)
+                for station in home.get("stations", []):
+                    station_id = station["id"]
+                    station_name = station["name"]
+                    reachable = station.get("reachable", False)
 
                     # Get available data types
                     data_types = []
-                    dashboard_data = station.get('dashboard_data', {})
-                    if 'Temperature' in dashboard_data:
-                        data_types.extend(['temperature', 'humidity'])
-                    if 'Pressure' in dashboard_data:
-                        data_types.append('pressure')
-                    if 'CO2' in dashboard_data:
-                        data_types.append('co2')
-                    if 'Noise' in dashboard_data:
-                        data_types.append('noise')
+                    dashboard_data = station.get("dashboard_data", {})
+                    if "Temperature" in dashboard_data:
+                        data_types.extend(["temperature", "humidity"])
+                    if "Pressure" in dashboard_data:
+                        data_types.append("pressure")
+                    if "CO2" in dashboard_data:
+                        data_types.append("co2")
+                    if "Noise" in dashboard_data:
+                        data_types.append("noise")
 
                     # Get modules
                     modules = []
-                    for module in home.get('modules', []):
-                        if module.get('main_device') == station_id:
-                            modules.append({
-                                'id': module['id'],
-                                'name': module['name'],
-                                'type': module['type'],
-                                'reachable': module.get('reachable', False)
-                            })
+                    for module in home.get("modules", []):
+                        if module.get("main_device") == station_id:
+                            modules.append(
+                                {
+                                    "id": module["id"],
+                                    "name": module["name"],
+                                    "type": module["type"],
+                                    "reachable": module.get("reachable", False),
+                                }
+                            )
                             # Add module-specific data types
-                            if module['type'] == 'NAModule1':  # Outdoor module
-                                data_types.extend(['temperature', 'humidity'])
-                            elif module['type'] == 'NAModule2':  # Wind module
-                                data_types.extend(['wind_strength', 'wind_angle', 'gust_strength', 'gust_angle'])
-                            elif module['type'] == 'NAModule3':  # Rain module
-                                data_types.append('rain')
+                            if module["type"] == "NAModule1":  # Outdoor module
+                                data_types.extend(["temperature", "humidity"])
+                            elif module["type"] == "NAModule2":  # Wind module
+                                data_types.extend(["wind_strength", "wind_angle", "gust_strength", "gust_angle"])
+                            elif module["type"] == "NAModule3":  # Rain module
+                                data_types.append("rain")
 
                     weather_station = WeatherStation(
                         id=station_id,
@@ -249,7 +245,7 @@ class NetatmoClient:
                         reachable=reachable,
                         modules=modules,
                         data_types=list(set(data_types)),  # Remove duplicates
-                        last_seen=datetime.fromtimestamp(station.get('last_status_store', time.time()))
+                        last_seen=datetime.fromtimestamp(station.get("last_status_store", time.time())),
                     )
                     stations.append(weather_station)
 
@@ -260,7 +256,7 @@ class NetatmoClient:
 
         except Exception as e:
             logger.error("Failed to get weather stations", error=str(e))
-            raise NetatmoError(f"Failed to retrieve weather stations: {str(e)}")
+            raise NetatmoError(f"Failed to retrieve weather stations: {e!s}") from e
 
     async def get_station_data(self, station_id: str) -> WeatherData:
         """Get current weather data for a specific station."""
@@ -289,16 +285,15 @@ class NetatmoClient:
                 raise DataUnavailableError(station_id, "station_offline")
 
             # Get detailed station data
-            data = await self._make_request('get_measure',
-                                          station.id,
-                                          ['Temperature', 'Humidity', 'Pressure', 'CO2', 'Noise'],
-                                          timedelta(hours=1))
+            data = await self._make_request(
+                "get_measure", station.id, ["Temperature", "Humidity", "Pressure", "CO2", "Noise"], timedelta(hours=1)
+            )
 
-            if not data or not data.get('body'):
+            if not data or not data.get("body"):
                 raise DataUnavailableError(station_id, "current_weather")
 
             # Convert to WeatherData
-            weather_data = WeatherData.from_netatmo_data(data['body'][0])
+            weather_data = WeatherData.from_netatmo_data(data["body"][0])
 
             # Cache the results
             self._data_cache[cache_key] = (weather_data, time.time())
@@ -309,36 +304,31 @@ class NetatmoClient:
             raise
         except Exception as e:
             logger.error(f"Failed to get weather data for station {station_id}", error=str(e))
-            raise NetatmoError(f"Failed to retrieve weather data: {str(e)}")
+            raise NetatmoError(f"Failed to retrieve weather data: {e!s}") from e
 
     async def get_historical_data(
-        self,
-        station_id: str,
-        start_date: datetime,
-        end_date: datetime,
-        data_types: Optional[List[str]] = None
-    ) -> List[WeatherData]:
+        self, station_id: str, start_date: datetime, end_date: datetime, data_types: list[str] | None = None
+    ) -> list[WeatherData]:
         """Get historical weather data for a station."""
         try:
-            logger.info(f"Fetching historical data for station {station_id}",
-                       start_date=start_date.isoformat(), end_date=end_date.isoformat())
+            logger.info(
+                f"Fetching historical data for station {station_id}",
+                start_date=start_date.isoformat(),
+                end_date=end_date.isoformat(),
+            )
 
             # Default data types if not specified
             if data_types is None:
-                data_types = ['Temperature', 'Humidity', 'Pressure', 'CO2', 'Noise']
+                data_types = ["Temperature", "Humidity", "Pressure", "CO2", "Noise"]
 
             # Get historical measurements
-            data = await self._make_request('get_measure',
-                                          station_id,
-                                          data_types,
-                                          start_date,
-                                          end_date)
+            data = await self._make_request("get_measure", station_id, data_types, start_date, end_date)
 
-            if not data or not data.get('body'):
+            if not data or not data.get("body"):
                 return []
 
             weather_data_list = []
-            for entry in data['body']:
+            for entry in data["body"]:
                 weather_data = WeatherData.from_netatmo_data(entry)
                 weather_data_list.append(weather_data)
 
@@ -347,9 +337,9 @@ class NetatmoClient:
 
         except Exception as e:
             logger.error(f"Failed to get historical data for station {station_id}", error=str(e))
-            raise NetatmoError(f"Failed to retrieve historical data: {str(e)}")
+            raise NetatmoError(f"Failed to retrieve historical data: {e!s}") from e
 
-    async def get_station_status(self, station_id: str) -> Dict[str, Any]:
+    async def get_station_status(self, station_id: str) -> dict[str, Any]:
         """Get detailed status information for a station."""
         try:
             stations = await self.get_stations()
@@ -357,14 +347,14 @@ class NetatmoClient:
             for station in stations:
                 if station.id == station_id:
                     return {
-                        'station_id': station.id,
-                        'station_name': station.name,
-                        'reachable': station.reachable,
-                        'last_seen': station.last_seen.isoformat() if station.last_seen else None,
-                        'data_types': station.data_types,
-                        'modules_count': len(station.modules),
-                        'home_id': station.home_id,
-                        'home_name': station.home_name
+                        "station_id": station.id,
+                        "station_name": station.name,
+                        "reachable": station.reachable,
+                        "last_seen": station.last_seen.isoformat() if station.last_seen else None,
+                        "data_types": station.data_types,
+                        "modules_count": len(station.modules),
+                        "home_id": station.home_id,
+                        "home_name": station.home_name,
                     }
 
             raise DeviceNotFoundError(station_id, "station")
@@ -373,30 +363,22 @@ class NetatmoClient:
             raise
         except Exception as e:
             logger.error(f"Failed to get status for station {station_id}", error=str(e))
-            raise NetatmoError(f"Failed to retrieve station status: {str(e)}")
+            raise NetatmoError(f"Failed to retrieve station status: {e!s}") from e
 
-    async def health_check(self) -> Dict[str, Any]:
+    async def health_check(self) -> dict[str, Any]:
         """Perform a health check of the Netatmo connection."""
         try:
             # Try to get stations as a connectivity test
             stations = await self.get_stations()
 
             return {
-                'status': 'healthy',
-                'stations_count': len(stations),
-                'reachable_stations': sum(1 for s in stations if s.reachable),
-                'timestamp': datetime.now().isoformat()
+                "status": "healthy",
+                "stations_count": len(stations),
+                "reachable_stations": sum(1 for s in stations if s.reachable),
+                "timestamp": datetime.now().isoformat(),
             }
 
         except AuthenticationError:
-            return {
-                'status': 'auth_failed',
-                'error': 'Authentication failed',
-                'timestamp': datetime.now().isoformat()
-            }
+            return {"status": "auth_failed", "error": "Authentication failed", "timestamp": datetime.now().isoformat()}
         except Exception as e:
-            return {
-                'status': 'unhealthy',
-                'error': str(e),
-                'timestamp': datetime.now().isoformat()
-            }
+            return {"status": "unhealthy", "error": str(e), "timestamp": datetime.now().isoformat()}

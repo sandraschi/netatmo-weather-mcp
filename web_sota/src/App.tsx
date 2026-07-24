@@ -1,11 +1,17 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AppLayout } from '@/components/layout/app-layout';
-import { Dashboard } from '@/pages/dashboard';
-import { Onboarding } from '@/pages/onboarding';
-import { Stations } from '@/pages/stations';
-import { Trends } from '@/pages/trends';
-import { Chat } from '@/pages/chat';
-import { Settings } from '@/pages/settings';
+import { AppLayout } from "@/components/layout/app-layout";
+import Logging from "@/pages/Logging";
+import { Chat } from "@/pages/chat";
+import { Dashboard } from "@/pages/dashboard";
+import { Onboarding } from "@/pages/onboarding";
+import { Settings } from "@/pages/settings";
+import { Stations } from "@/pages/stations";
+import { Trends } from "@/pages/trends";
+import {
+  Navigate,
+  Route,
+  BrowserRouter as Router,
+  Routes,
+} from "react-router-dom";
 
 function App() {
   return (
@@ -17,6 +23,7 @@ function App() {
           <Route path="/stations" element={<Stations />} />
           <Route path="/trends" element={<Trends />} />
           <Route path="/chat" element={<Chat />} />
+          <Route path="/logging" element={<Logging />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
