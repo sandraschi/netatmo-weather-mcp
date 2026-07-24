@@ -10,6 +10,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - `llms.txt`, `llms-full.txt`, `glama.json` — fleet documentation and discovery files
 - `PRD.md` — product requirements document
+- `@server.prompt()`: `weather_help`, `weather_forecast_guide` — contextual tool guidance
+- `@server.resource(netatmo://info)`: server info resource
+- `@server.tool(app=True) show_help_overview`: Prefab UI card with tool overview
+- `/api/v1/diagnostics` endpoint for CUA-NSIS verification
+- `.claude-plugin/` + `hooks/hooks.json`: session context injection
 
 ### Changed
 - **Spec file**: Fleet-standard PyInstaller config (`noarchive=True`, `upx=False`, SKIP list, .dist-info preserve)

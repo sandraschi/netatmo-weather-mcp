@@ -45,6 +45,14 @@ default 300s) reduces redundant API calls within a session.
 
 ---
 
+## FastMCP 3.4 Features
+
+- **Prompts**: `weather_help(topic)` — contextual tool guidance; `weather_forecast_guide()` — prediction workflow
+- **Resources**: `netatmo://info` — server info and config status
+- **Prefab UI**: `show_help_overview` — rich in-chat card with tool descriptions
+- **Tool annotations**: All 4 tools marked `READ_ONLY`
+- **Lifespan**: Proper startup/shutdown with Prometheus metrics init
+
 ## Tools
 
 ### weather_station_management
