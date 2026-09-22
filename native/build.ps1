@@ -8,6 +8,13 @@ New-Item -ItemType Directory -Force -Path $ResourceDir, $DevDir | Out-Null
 
 Write-Host "=== ${RepoName} Tauri Release Build ===" -ForegroundColor Cyan
 
+# Naked `bun` inherits whatever PATH the invoking shell happened to have,
+# which can predate bun's installer PATH registration in an already-open
+# shell (BUG-045). Resolve a qualified path once instead.
+$bunExe = Join-Path $env:USERPROFILE ".bun\bin\bun.exe"
+if (-not (Test-Path $bunExe)) { $bunExe = (Get-Command bun -ErrorAction SilentlyContinue).Source }
+if (-not $bunExe) { throw "bun not found — install from https://bun.sh" }
+
 # Step 1: TypeScript lint gate + frontend build
 $frontendDirs = @("web_sota", "webapp/frontend", "webapp")
 foreach ($dir in $frontendDirs) {
@@ -16,10 +23,10 @@ foreach ($dir in $frontendDirs) {
         Write-Host "-> [1/4] Building frontend ($dir)..." -ForegroundColor Yellow
         Push-Location $frontend
         Write-Host "  bun install..." -ForegroundColor Gray
-        bun install 2>$null
+        & $bunExe install 2>$null
 
         Write-Host "  tsc --noEmit..." -ForegroundColor Gray
-        $tscOut = bun run tsc --noEmit 2>&1
+        $tscOut = & $bunExe run tsc --noEmit 2>&1
         $tscExit = $LASTEXITCODE
         if ($tscExit -ne 0) {
             Write-Host "  TypeScript compilation FAILED - fix errors before building NSIS" -ForegroundColor Red
@@ -27,7 +34,7 @@ foreach ($dir in $frontendDirs) {
             throw "TypeScript compilation failed - fix all errors before building NSIS installer"
         }
 
-        bun run build
+        & $bunExe run build
         if ($LASTEXITCODE -ne 0) { throw "Frontend build failed" }
         Pop-Location
         break
